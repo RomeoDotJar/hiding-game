@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+dist-gh-pages/
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+
+# OS/IDE files
+.DS_Store
+.vscode/
+.idea/
