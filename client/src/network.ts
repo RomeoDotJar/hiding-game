@@ -9,12 +9,10 @@ import {
 import { MoveInput } from "./shared/input/MoveInput.js";
 import { MyRoomState } from "./shared/schema/MyRoomState.js";
 import { applyInput, type PlayerEntity } from "./shared/input/applyInput.js";
+import { LOCAL_URL, PROXY_URL, USE_LOCALHOST } from "./shared/constants.js";
 //import { getMoveX, getMoveY, isInteractKeyPressed } from './input.js';
 
-const useLocalHost = false;
-const PROXY_URL =
-  "https://server-proxy.romeodotjar-hiding-game.workers.dev/get-server";
-const LOCAL_URL = "ws://localhost:2567";
+const useLocalHost = USE_LOCALHOST;
 //const SERVER_URL =
 //  import.meta.env.DEV && useLocalHost
 //    ? "ws://localhost:2567"
@@ -23,7 +21,7 @@ const LOCAL_URL = "ws://localhost:2567";
 async function getServerUrl(): Promise<string> {
   if (useLocalHost) return LOCAL_URL;
 
-  const response = await fetch(PROXY_URL);
+  const response = await fetch(PROXY_URL+"/get-server");
   const data = await response.json();
 
   if (data.url) {
@@ -45,15 +43,26 @@ export interface GameNetwork {
   input: InputHandle<MoveInput>;
 }
 
-const PREDICTION_DELAY = 20;
-const SELF_SMOOTHING = 50;
+const PREDICTION_DELAY = 5;
+const SMOOTHING = 15;
 
 function initPredict(room: Room): GameNetwork {
-  const predict = Predict.get(room, { mode: "lerp", delay: PREDICTION_DELAY });
-  predict.attachAll("players", {
-    mode: "lerp",
-    fields: ["x", "y", "isInteracting"],
-  });
+  const predict = Predict.get(room, { mode: "extrapolate", delay: PREDICTION_DELAY, snap: 150 });
+
+  // Built-in approach. Replaced with a custom one
+  // predict.attachAll("players", {
+  //   mode: "extrapolate",
+  //   fields: ["x", "y", "isInteracting"],
+  //   step: (ctx: StepContext, playerState: unknown, cmd: unknown) =>
+  //     applyInput(
+  //       playerState as unknown as PlayerEntity,
+  //       cmd as MoveInput,
+  //       ctx.dt,
+  //     ),
+  //   smoothMs: SMOOTHING,
+  //   delay: PREDICTION_DELAY,
+  //   snap: 0
+  // });
 
   const self = room.state.players.get(room.sessionId);
   const input = room.input({ type: MoveInput });
@@ -66,7 +75,8 @@ function initPredict(room: Room): GameNetwork {
         cmd as MoveInput,
         ctx.dt,
       ),
-    smoothMs: SELF_SMOOTHING,
+    smoothMs: SMOOTHING,
+    snap: 150
   });
 
   return { room, predict, input };
@@ -96,6 +106,10 @@ export async function connectToGame(): Promise<GameNetwork> {
   }
 
   sessionStorage.setItem("reconnection_token", room.reconnectionToken);
+
+  room.onMessage("ping_request", (message: { timestamp: number }) => {
+    room.send("pong_response", { timestamp: message.timestamp });
+  });
 
   return new Promise((resolve) => {
     // Either resolve instantly or wait for the current client to be added

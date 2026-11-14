@@ -1,10 +1,11 @@
-import { Room, Client, CloseCode, type StepContext } from "colyseus";
+import { Room, Client, CloseCode, type StepContext, Delayed } from "colyseus";
 import { Player, MyRoomState } from "../shared/schema/MyRoomState.js";
 import { applyInput, type PlayerEntity } from "../shared/input/applyInput.js";
 import { MoveInput } from "../shared/input/MoveInput.js";
 import { TICK_RATE } from "../shared/constants.js";
 
 export class MyRoom extends Room<{ state: MyRoomState, input: MoveInput }> {
+  private pingInterval!: Delayed;
   maxClients = 8;
   state = new MyRoomState();
 
@@ -26,6 +27,27 @@ export class MyRoom extends Room<{ state: MyRoomState, input: MoveInput }> {
 
   onCreate(options: any) {
     this.setFixedTimestep((ctx) => this.step(ctx), TICK_RATE);
+
+    this.onMessage("pong_response", (client, message: { timestamp: number }) => {
+      // Calculate how many milliseconds have passed since we sent the request
+      const rtt = Date.now() - message.timestamp;
+      
+      // Update the player's ping in the schema
+      const player = this.state.players.get(client.sessionId);
+      if (player) {
+        player.ping = rtt;
+      }
+    });
+
+    this.pingInterval = this.clock.setInterval(() => {
+      this.measurePingsForAllClients();
+    }, 1500);
+  }
+
+  measurePingsForAllClients() {
+    this.clients.forEach((client) => {
+      client.send("ping_request", {timestamp: Date.now()});
+    })
   }
 
   onJoin(client: Client, options: any) {
@@ -36,8 +58,6 @@ export class MyRoom extends Room<{ state: MyRoomState, input: MoveInput }> {
     this.state.players.set(client.sessionId, new Player({
       x: 1000 / 2 + Math.cos(angle) * 80,
       y: 1000 / 2 + Math.sin(angle) * 80,
-      vx: 0,
-      vy: 0,
     }));
   }
 
@@ -58,8 +78,14 @@ export class MyRoom extends Room<{ state: MyRoomState, input: MoveInput }> {
     for (const [sessionId, player] of this.state.players) {
       const cmd = this.inputs.get(sessionId).next(); // Get the next buffered input
       if (cmd) {
+        let oldX = player.x;
+        let oldY = player.y;
+
         // Cast the Colyseus state player to our shared PlayerEntity type
         applyInput(player as unknown as PlayerEntity, cmd as any, ctx.dt);
+
+        player.vx = (player.x-oldX) / ctx.dt;
+        player.vy = (player.y-oldY) / ctx.dt;
       }
     }
     // for (const [sessionId, player] of this.state.players) {

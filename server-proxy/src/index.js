@@ -1,121 +1,162 @@
 export default {
-	async fetch(request, env) {
-		const allowedOrigins = [
-			"https://romeodotjar.github.io",
-			"http://localhost:8080",
-			"http://localhost:5173" // Vite's default local port (just in case)
-		];
+  async fetch(request, env) {
+    // 1. Define CORS headers for all responses
+    const corsHeaders = {
+      "Access-Control-Allow-Origin": "*", // Restrict to your GitHub Pages URL in production
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    };
 
-		const origin = request.headers.get("Origin");
+    // 2. Handle CORS Preflight
+    if (request.method === "OPTIONS") {
+      return new Response(null, { headers: corsHeaders });
+    }
 
-		var corsHeaders = {};
+    const url = new URL(request.url);
 
-		// Check if the request's origin is in our allowed list
-		if (allowedOrigins.includes(origin)) {
-			corsHeaders = {
-				"Access-Control-Allow-Origin": origin,
-				"Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept, Authorization",
-				"Access-Control-Allow-Methods": "OPTIONS, POST, GET",
-			};
-		}
-		else
-			corsHeaders = {
-				"Access-Control-Allow-Origin": '',
-				"Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept, Authorization",
-				"Access-Control-Allow-Methods": "OPTIONS, POST, GET",
-			};
+    // 3. Prevent 500 errors on favicon requests
+    if (url.pathname === "/favicon.ico") {
+      return new Response(null, { status: 204 });
+    }
 
-		if (request.method === "OPTIONS") {
-			return new Response(null, { headers: corsHeaders });
-		}
+    // 4. Wrap everything in try/catch to prevent generic 500s
+    try {
+      const token = env.EDGEGAP_TOKEN;
+      if (!token) throw new Error("EDGEGAP_TOKEN is missing in environment variables.");
 
-		const edgegapToken = env.EDGEGAP_TOKEN;
-		const appName = "hiding-game";
-		const appVersion = env.VERSION; // Update this tag when you deploy a new version
+      const authHeaders = {
+        "Authorization": `token ${token}`,
+        "Content-Type": "application/json",
+      };
 
-		const authHeaders = {
-			"Authorization": `token ${edgegapToken}`,
-			"Content-Type": "application/json",
-		};
+      const appName = "hiding-game";
+      const appVersion = env.VERSION; // UPDATE THIS TAG whenever you deploy a new Edgegap version!
 
-		// 1. Check for active deployments
-		// API: GET /v1/deployments
-		// Build the query as an object
-		const query = {
-			filters: [
-				{ field: "application", operator: "eq", value: appName },
-				{ field: "status", operator: "eq", value: "ready" } // Use "ready" or "active"
-			],
-			// It's good practice to order results
-			order_by: [{ field: "created_at", order: "desc" }]
-		};
+      // Helper function to find the active deployment
+      async function getActiveDeployment() {
+        const queryObj = {
+          filters: [
+            { field: "application", operator: "eq", value: appName },
+            { field: "status", operator: "eq", value: "ready" }
+          ]
+        };
+        const encodedQuery = encodeURIComponent(JSON.stringify(queryObj));
+        const listRes = await fetch(`https://api.edgegap.com/v1/deployments?query=${encodedQuery}`, { headers: authHeaders });
+        
+        const listText = await listRes.text();
+        if (!listRes.ok) throw new Error(`Edgegap List API error (${listRes.status}): ${listText}`);
+        
+        const listData = JSON.parse(listText);
+        return listData.data && listData.data.length > 0 ? listData.data[0] : null;
+      }
 
-		// Encode the JSON object for the URL
-		const encodedQuery = encodeURIComponent(JSON.stringify(query));
-		const listUrl = `https://api.edgegap.com/v1/deployments?query=${encodedQuery}`;
+      // ==========================================
+      // ROUTE: /get-server
+      // ==========================================
+      if (url.pathname === "/get-server") {
+        const activeDeployment = await getActiveDeployment();
 
-		const listRes = await fetch(listUrl, { headers: authHeaders });
-		const listData = await listRes.json();
+        if (activeDeployment) {
+          // Find the external port for the Colyseus server (port 2567)
+          let externalPort = null;
+          if (activeDeployment.ports) {
+            for (const key in activeDeployment.ports) {
+              const portData = activeDeployment.ports[key];
+              if (portData.internal === 2567 || portData.name === "gameport") {
+                externalPort = portData.external;
+                break;
+              }
+            }
+          }
 
-		if (listData.data && listData.data.length > 0) {
-			const activeDeployment = listData.data[0];
-			let externalPort = null;
+          if (externalPort) {
+            const serverUrl = `wss://${activeDeployment.fqdn}:${externalPort}`;
+            return new Response(JSON.stringify({ url: serverUrl }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          } else {
+            throw new Error("Active deployment found, but could not find the game port (2567).");
+          }
+        }
 
-			// Edgegap returns ports as an object keyed by port name (e.g., "gameport")
-			if (activeDeployment.ports) {
-				for (const key in activeDeployment.ports) {
-					const portData = activeDeployment.ports[key];
-					// Check if this is the Colyseus port
-					if (portData.internal === 2567 || portData.name === "gameport") {
-						externalPort = portData.external;
-						break;
-					}
-				}
-			}
+        // No active deployment found. Create a new one.
+        console.log("No active deployments found. Creating a new one...");
+        
+        const createRes = await fetch("https://api.edgegap.com/v2/deployments", {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify({
+            application: appName,
+            version: appVersion,
+            users: [
+              {
+                user_type: "ip_address",
+                user_data: { ip_address: "0.0.0.0" } // Required by Edgegap
+              }
+            ]
+          }),
+        });
 
-			if (externalPort) {
-				const serverUrl = `wss://${activeDeployment.fqdn}:${externalPort}`;
-				return new Response(JSON.stringify({ url: serverUrl }), {
-					headers: {
-						"Content-Type": "application/json",
-						"Access-Control-Allow-Origin": "*"
-					},
-				});
-			} else {
-				throw new Error("Active deployment found, but could not find the game port (2567).");
-			}
-		}
+        const createText = await createRes.text();
+        if (!createRes.ok) throw new Error(`Edgegap Create API error (${createRes.status}): ${createText}`);
 
-		// 2. No active deployment found. Create a new one.
-		// API: POST /v2/deployments
-		const createRes = await fetch("https://api.edgegap.com/v2/deployments", {
-			method: "POST",
-			headers: authHeaders,
-			body: JSON.stringify({
-				application: appName,
-				version: appVersion,
-				// Add the required 'users' array
-				users: [
-					{
-						user_type: "ip_address",
-						user_data: { ip_address: "0.0.0.0" } // Or a real IP for better routing
-					}
-				]
-			}),
-		});
+        return new Response(JSON.stringify({ status: "deploying" }), {
+          status: 202, // 202 Accepted
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-		const createData = await createRes.json();
+      // ==========================================
+      // ROUTE: /get-uptime
+      // ==========================================
+      if (url.pathname === "/get-uptime") {
+        const activeDeployment = await getActiveDeployment();
 
-		if (!createRes.ok) {
-			return new Response(JSON.stringify({ error: createData.message }), { status: 500, headers: corsHeaders });
-		}
+        if (!activeDeployment) {
+          throw new Error("No active deployment found to check uptime.");
+        }
 
-		// 3. Return the new deployment status (you'll need to poll until it's ready)
-		return new Response(JSON.stringify({
-			status: "deploying",
-			requestId: createData.request_id
-		}), {
-			headers: { ...corsHeaders, "Content-Type": "application/json" },
-		});
-	},
+        const requestId = activeDeployment.request_id;
+        
+        // Fetch detailed status for this specific deployment
+        const statusRes = await fetch(`https://api.edgegap.com/v1/status/${requestId}`, { headers: authHeaders });
+        const statusText = await statusRes.text();
+        
+        if (!statusRes.ok) throw new Error(`Edgegap Status API error (${statusRes.status}): ${statusText}`);
+        
+        const statusData = JSON.parse(statusText);
+
+        // Calculate remaining time
+        const elapsedSeconds = statusData.elapsed_time || 0;
+        const maxDurationMinutes = statusData.max_duration || 60;
+        const maxDurationSeconds = maxDurationMinutes * 60;
+        const remainingSeconds = Math.max(0, maxDurationSeconds - elapsedSeconds);
+
+        return new Response(JSON.stringify({ 
+          remainingSeconds: remainingSeconds,
+          maxDurationMinutes: maxDurationMinutes 
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // ==========================================
+      // Fallback for unknown routes
+      // ==========================================
+      return new Response(JSON.stringify({ error: "Route not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+
+    } catch (error) {
+      // Log the real error to Cloudflare's terminal
+      console.error("Worker Error:", error.message);
+      
+      // Send the real error to the browser
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  },
 };
