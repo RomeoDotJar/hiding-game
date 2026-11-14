@@ -12,7 +12,8 @@ import { applyInput, type PlayerEntity } from "./shared/input/applyInput.js";
 //import { getMoveX, getMoveY, isInteractKeyPressed } from './input.js';
 
 const useLocalHost = false;
-const PROXY_URL = "https://server-proxy.romeodotjar-hiding-game.workers.dev/get-server";
+const PROXY_URL =
+  "https://server-proxy.romeodotjar-hiding-game.workers.dev/get-server";
 const LOCAL_URL = "ws://localhost:2567";
 //const SERVER_URL =
 //  import.meta.env.DEV && useLocalHost
@@ -20,8 +21,7 @@ const LOCAL_URL = "ws://localhost:2567";
 //    : "wss://"+"6d1587ed12e4.pr.edgegap.net:31889";
 
 async function getServerUrl(): Promise<string> {
-  if (useLocalHost)
-    return LOCAL_URL;
+  if (useLocalHost) return LOCAL_URL;
 
   const response = await fetch(PROXY_URL);
   const data = await response.json();
@@ -32,7 +32,7 @@ async function getServerUrl(): Promise<string> {
 
   if (data.status === "deploying") {
     console.log("Server is deploying, please wait...");
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise((resolve) => setTimeout(resolve, 5000));
     return getServerUrl();
   }
 
