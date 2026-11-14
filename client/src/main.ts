@@ -151,7 +151,7 @@ function initGame(app: Application, net: GameNetwork) {
 
           // You can use a simple average like (predicted + actual) / 2, 
           // or a frame-rate independent exponential smoothing for better feel.
-          const velSmoothFactor = .2;
+          const velSmoothFactor = .125;
           storedRemotePlayer.predictedVelX += (deltaX - storedRemotePlayer.predictedVelX) * velSmoothFactor;
           storedRemotePlayer.predictedVelY += (deltaY - storedRemotePlayer.predictedVelY) * velSmoothFactor;
           
@@ -178,7 +178,7 @@ function initGame(app: Application, net: GameNetwork) {
           // C. Smoothly Render
           // ==========================================
           // Frame-rate independent lerp towards the extrapolated target
-          const renderSmoothFactor = .4;
+          const renderSmoothFactor = .25;
           
           storedRemotePlayer.renderedX += (targetX - storedRemotePlayer.renderedX) * renderSmoothFactor;
           storedRemotePlayer.renderedY += (targetY - storedRemotePlayer.renderedY) * renderSmoothFactor;
@@ -190,7 +190,6 @@ function initGame(app: Application, net: GameNetwork) {
           let debug_g = storedRemotePlayer.debugSprite;
           debug_g.x = targetX;
           debug_g.y = targetY;
-          console.log(sessionId, Math.round(player.ping/20)*20, storedRemotePlayer.predictedVelY, player.vy);
       }
       else if (sessionId===room.sessionId && selfPlayer) {
         selfPlayer.x = predict.value(player, "x");
