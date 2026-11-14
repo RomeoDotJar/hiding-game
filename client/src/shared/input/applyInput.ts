@@ -1,6 +1,5 @@
 import type { MoveInput } from "./MoveInput";
 
-
 // A simple interface for a player entity
 export interface PlayerEntity {
   x: number;

@@ -13,16 +13,16 @@ async function updateUptime() {
   try {
     const response = await fetch(`${PROXY_URL}/get-uptime`);
     const data = await response.json();
-    
+
     if (data.remainingSeconds !== undefined) {
       // Format as MM:SS
       const minutes = Math.floor(data.remainingSeconds / 60);
       const seconds = data.remainingSeconds % 60;
-      const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+      const timeString = `${minutes}:${seconds.toString().padStart(2, "0")}`;
       debugUI.updateField("Uptime", timeString);
     }
   } catch (err) {
-    debugUI.updateField("Uptime", "Error");
+    debugUI.updateField("Uptime", "Error: " + err);
   }
 }
 
@@ -33,7 +33,6 @@ function initGame(app: Application, net: GameNetwork) {
   debugUI.updateField("Room", room.roomId);
   debugUI.updateField("PlayerID", room.sessionId);
 
-
   interface RemotePlayerState {
     renderedX: number;
     renderedY: number;
@@ -42,12 +41,12 @@ function initGame(app: Application, net: GameNetwork) {
     lastServerX: number;
     lastServerY: number;
     lastUpdateTime: number;
-    
+
     sprite: Graphics;
     debugSprite: Graphics;
   }
   const remotePlayers = new Map<string, RemotePlayerState>();
-  var selfPlayer: Graphics;
+  let selfPlayer: Graphics;
 
   const callbacks = Callbacks.get(room);
 
@@ -89,15 +88,14 @@ function initGame(app: Application, net: GameNetwork) {
     g.rect(-10, -10, 20, 20).fill(color);
     app.stage.addChild(g);
 
-    debug_g.rect(-5,-5,10,10).fill(0x111111,.5);
+    debug_g.rect(-5, -5, 10, 10).fill(0x111111, 0.5);
     debug_g.zIndex -= 100;
     app.stage.addChild(debug_g);
 
     if (isMe) {
       g.zIndex += 1000;
       selfPlayer = g;
-    }
-    else {
+    } else {
       remotePlayers.set(sessionId, {
         renderedX: player.x,
         renderedY: player.y,
@@ -107,7 +105,7 @@ function initGame(app: Application, net: GameNetwork) {
         lastServerY: player.y,
         lastUpdateTime: performance.now(),
         sprite: g,
-        debugSprite: debug_g
+        debugSprite: debug_g,
       });
     }
   });
@@ -126,7 +124,7 @@ function initGame(app: Application, net: GameNetwork) {
   }, 1000);
 
   setInterval(updateUptime, 15000);
-  updateUptime()
+  updateUptime();
 
   app.ticker.add(() => {
     const now = performance.now();
@@ -144,54 +142,70 @@ function initGame(app: Application, net: GameNetwork) {
     for (const [sessionId, player] of room.state.players) {
       const storedRemotePlayer = remotePlayers.get(sessionId);
       if (storedRemotePlayer) {
-          //const server_dt = (now - storedRemotePlayer.lastUpdateTime) / 1000;
+        //const server_dt = (now - storedRemotePlayer.lastUpdateTime) / 1000;
 
-          const deltaX = player.vx;//(player.x - storedRemotePlayer.lastServerX) / server_dt;
-          const deltaY = player.vy;//(player.y - storedRemotePlayer.lastServerY) / server_dt;
+        const deltaX = player.vx; //(player.x - storedRemotePlayer.lastServerX) / server_dt;
+        const deltaY = player.vy; //(player.y - storedRemotePlayer.lastServerY) / server_dt;
 
-          // You can use a simple average like (predicted + actual) / 2, 
-          // or a frame-rate independent exponential smoothing for better feel.
-          const velSmoothFactor = .125;
-          storedRemotePlayer.predictedVelX += (deltaX - storedRemotePlayer.predictedVelX) * velSmoothFactor;
-          storedRemotePlayer.predictedVelY += (deltaY - storedRemotePlayer.predictedVelY) * velSmoothFactor;
-          
-          // If the player is practically stopped, snap velocity to 0 to prevent drifting
-          if (Math.abs(storedRemotePlayer.predictedVelX) < 5 && Math.abs(deltaX) < 5) storedRemotePlayer.predictedVelX = 0;
-          if (Math.abs(storedRemotePlayer.predictedVelY) < 5 && Math.abs(deltaY) < 5) storedRemotePlayer.predictedVelY = 0;
+        // You can use a simple average like (predicted + actual) / 2,
+        // or a frame-rate independent exponential smoothing for better feel.
+        const velSmoothFactor = 0.125;
+        storedRemotePlayer.predictedVelX +=
+          (deltaX - storedRemotePlayer.predictedVelX) * velSmoothFactor;
+        storedRemotePlayer.predictedVelY +=
+          (deltaY - storedRemotePlayer.predictedVelY) * velSmoothFactor;
 
-          storedRemotePlayer.lastServerX = player.x;
-          storedRemotePlayer.lastServerY = player.y;
-          storedRemotePlayer.lastUpdateTime = now;
+        // If the player is practically stopped, snap velocity to 0 to prevent drifting
+        if (
+          Math.abs(storedRemotePlayer.predictedVelX) < 5 &&
+          Math.abs(deltaX) < 5
+        )
+          storedRemotePlayer.predictedVelX = 0;
+        if (
+          Math.abs(storedRemotePlayer.predictedVelY) < 5 &&
+          Math.abs(deltaY) < 5
+        )
+          storedRemotePlayer.predictedVelY = 0;
 
-          // ==========================================
-          // B. Predict the Future Position
-          // ==========================================
-          // The remote player's total delay includes THEIR upstream ping and YOUR downstream ping
-          const remotePlayerUpstreamLatency = player.ping || 50; // Fallback to 50ms if rtt isn't set
-          const totalPerceivedLatencySeconds = (remotePlayerUpstreamLatency + myPing) / 1000 / 2;
+        storedRemotePlayer.lastServerX = player.x;
+        storedRemotePlayer.lastServerY = player.y;
+        storedRemotePlayer.lastUpdateTime = now;
 
-          // Calculate where they should be RIGHT NOW (extrapolation)
-          const targetX = player.x + (storedRemotePlayer.predictedVelX * totalPerceivedLatencySeconds);
-          const targetY = player.y + (storedRemotePlayer.predictedVelY * totalPerceivedLatencySeconds);
+        // ==========================================
+        // B. Predict the Future Position
+        // ==========================================
+        // The remote player's total delay includes THEIR upstream ping and YOUR downstream ping
+        const remotePlayerUpstreamLatency = player.ping || 50; // Fallback to 50ms if rtt isn't set
+        const totalPerceivedLatencySeconds =
+          (remotePlayerUpstreamLatency + myPing) / 1000 / 2;
 
-          // ==========================================
-          // C. Smoothly Render
-          // ==========================================
-          // Frame-rate independent lerp towards the extrapolated target
-          const renderSmoothFactor = .25;
-          
-          storedRemotePlayer.renderedX += (targetX - storedRemotePlayer.renderedX) * renderSmoothFactor;
-          storedRemotePlayer.renderedY += (targetY - storedRemotePlayer.renderedY) * renderSmoothFactor;
+        // Calculate where they should be RIGHT NOW (extrapolation)
+        const targetX =
+          player.x +
+          storedRemotePlayer.predictedVelX * totalPerceivedLatencySeconds;
+        const targetY =
+          player.y +
+          storedRemotePlayer.predictedVelY * totalPerceivedLatencySeconds;
 
-          // Apply to PixiJS
-          let g = storedRemotePlayer.sprite;
-          g.x = storedRemotePlayer.renderedX;
-          g.y = storedRemotePlayer.renderedY;
-          let debug_g = storedRemotePlayer.debugSprite;
-          debug_g.x = targetX;
-          debug_g.y = targetY;
-      }
-      else if (sessionId===room.sessionId && selfPlayer) {
+        // ==========================================
+        // C. Smoothly Render
+        // ==========================================
+        // Frame-rate independent lerp towards the extrapolated target
+        const renderSmoothFactor = 0.25;
+
+        storedRemotePlayer.renderedX +=
+          (targetX - storedRemotePlayer.renderedX) * renderSmoothFactor;
+        storedRemotePlayer.renderedY +=
+          (targetY - storedRemotePlayer.renderedY) * renderSmoothFactor;
+
+        // Apply to PixiJS
+        const g = storedRemotePlayer.sprite;
+        g.x = storedRemotePlayer.renderedX;
+        g.y = storedRemotePlayer.renderedY;
+        const debug_g = storedRemotePlayer.debugSprite;
+        debug_g.x = targetX;
+        debug_g.y = targetY;
+      } else if (sessionId === room.sessionId && selfPlayer) {
         selfPlayer.x = predict.value(player, "x");
         selfPlayer.y = predict.value(player, "y");
       }

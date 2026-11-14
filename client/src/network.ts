@@ -21,7 +21,7 @@ const useLocalHost = USE_LOCALHOST;
 async function getServerUrl(): Promise<string> {
   if (useLocalHost) return LOCAL_URL;
 
-  const response = await fetch(PROXY_URL+"/get-server");
+  const response = await fetch(PROXY_URL + "/get-server");
   const data = await response.json();
 
   if (data.url) {
@@ -47,7 +47,11 @@ const PREDICTION_DELAY = 5;
 const SMOOTHING = 15;
 
 function initPredict(room: Room): GameNetwork {
-  const predict = Predict.get(room, { mode: "extrapolate", delay: PREDICTION_DELAY, snap: 150 });
+  const predict = Predict.get(room, {
+    mode: "extrapolate",
+    delay: PREDICTION_DELAY,
+    snap: 150,
+  });
 
   // Built-in approach. Replaced with a custom one
   // predict.attachAll("players", {
@@ -76,7 +80,7 @@ function initPredict(room: Room): GameNetwork {
         ctx.dt,
       ),
     smoothMs: SMOOTHING,
-    snap: 150
+    snap: 150,
   });
 
   return { room, predict, input };

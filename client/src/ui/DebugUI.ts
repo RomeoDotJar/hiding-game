@@ -47,10 +47,9 @@ export class DebugUI {
     this.container.appendChild(row);
 
     if (value.textContent.length <= 0) {
-      row.style.display = 'none';
-    }
-    else {
-      row.style.display = 'block';
+      row.style.display = "none";
+    } else {
+      row.style.display = "block";
     }
 
     // Store the value element so we can update it later
@@ -66,10 +65,9 @@ export class DebugUI {
       element.textContent = String(value);
 
       if (element.textContent.length <= 0) {
-        element.parentElement.style.display = 'none';
-      }
-      else {
-        element.parentElement.style.display = 'block';
+        element.parentElement.style.display = "none";
+      } else {
+        element.parentElement.style.display = "block";
       }
     }
   }

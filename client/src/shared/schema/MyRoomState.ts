@@ -11,15 +11,15 @@ import { schema, Schema, t, type, type SchemaType } from "@colyseus/schema";
  * clamp is what actually enforces it against a modified client.
  */
 export class Player extends Schema {
-  @type("number") x!: number; 
+  @type("number") x!: number;
   @type("number") y!: number;
-  @type("number") vx: number = 0; 
+  @type("number") vx: number = 0;
   @type("number") vy: number = 0;
-  
-  @type("number") ping: number = 100; 
-  
+
+  @type("number") ping: number = 100;
+
   @type("boolean") isInteracting: boolean = false;
-  
+
   @type("string") name: string = "Unknown";
 }
 
