@@ -13,7 +13,7 @@
     "test": "mocha -r tsx test/**.test.ts --exit --timeout 15000",
     "build:client": "vite build --mode client",
     "build": "tsc -p tsconfig.prod.json",
-    "start": "npm run build && node build/index.js",
+    "start": "node build/index.js",
     "dev": "tsx watch src/index.ts"
   },
   "author": "",

@@ -68,16 +68,13 @@ const server = defineServer({
 
 import { matchMaker } from '@colyseus/core';
 
-// 1. Get the matchmaker instance
 const matchmaker = matchMaker;
 
-// 2. Override the CORS headers function
 matchmaker.controller.getCorsHeaders = function (headers) {
-  // Define the origins you want to allow
   const allowedOrigins = [
-    "https://romeodotjar.github.io", // Your production GitHub Pages
-    "http://localhost:8080",        // Your local dev client
-    "http://localhost:5173"         // Vite's default local port (just in case)
+    "https://romeodotjar.github.io",
+    "http://localhost:8080",
+    "http://localhost:5173" // Vite's default local port (just in case)
   ];
 
   const origin = headers.get('origin');

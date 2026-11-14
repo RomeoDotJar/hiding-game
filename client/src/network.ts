@@ -11,11 +11,33 @@ import { MyRoomState } from "./shared/schema/MyRoomState.js";
 import { applyInput, type PlayerEntity } from "./shared/input/applyInput.js";
 //import { getMoveX, getMoveY, isInteractKeyPressed } from './input.js';
 
-const useLocalHost = true;
-const SERVER_URL =
-  import.meta.env.DEV && useLocalHost
-    ? "ws://localhost:2567"
-    : "wss://c07ae97ff283.pr.edgegap.net:32054";
+const useLocalHost = false;
+const PROXY_URL = "https://server-proxy.romeodotjar-hiding-game.workers.dev/get-server";
+const LOCAL_URL = "ws://localhost:2567";
+//const SERVER_URL =
+//  import.meta.env.DEV && useLocalHost
+//    ? "ws://localhost:2567"
+//    : "wss://"+"6d1587ed12e4.pr.edgegap.net:31889";
+
+async function getServerUrl(): Promise<string> {
+  if (useLocalHost)
+    return LOCAL_URL;
+
+  const response = await fetch(PROXY_URL);
+  const data = await response.json();
+
+  if (data.url) {
+    return data.url;
+  }
+
+  if (data.status === "deploying") {
+    console.log("Server is deploying, please wait...");
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    return getServerUrl();
+  }
+
+  throw new Error("Failed to obtain server URL");
+}
 
 export interface GameNetwork {
   room: Room<MyRoomState>;
@@ -51,8 +73,9 @@ function initPredict(room: Room): GameNetwork {
 }
 
 export async function connectToGame(): Promise<GameNetwork> {
-  console.log("Connecting to:", SERVER_URL);
-  const client = new Client(SERVER_URL);
+  const serverUrl = await getServerUrl();
+  console.log("Connecting to:", serverUrl);
+  const client = new Client(serverUrl);
   const savedToken = sessionStorage.getItem("reconnection_token");
   let room: Room;
 
