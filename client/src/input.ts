@@ -5,8 +5,7 @@ const keys: Record<string, boolean> = {};
 let touchX = -1;
 let touchY = -1;
 function processTouch(e: TouchEvent) {
-  if (e.type == "end") {
-  } else {
+  if (e.type !== "end") {
     touchX = e.touches.item(0)?.pageX || touchX;
     touchY = e.touches.item(0)?.pageY || touchY;
   }
