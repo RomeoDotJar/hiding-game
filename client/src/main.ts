@@ -1,6 +1,6 @@
-import { GAME_VERSION } from '../../shared/constants.js';
-import { Application, Assets, Graphics, Sprite, Text, TextStyle } from "pixi.js";
-import { connectToGame, GameNetwork } from './network';
+import { GAME_VERSION } from "../../shared/constants.js";
+import { Application, Graphics, Text, TextStyle } from "pixi.js";
+import { connectToGame, GameNetwork } from "./network";
 import { DebugUI } from "./ui/DebugUI.js";
 import { getMoveX, getMoveY, isInteractKeyPressed } from "./input.js";
 import { Callbacks } from "@colyseus/sdk";
@@ -11,8 +11,8 @@ function initGame(app: Application, net: GameNetwork) {
   const { room, predict, input } = net;
 
   console.log("Successfully connected to the game room!", room);
-  debugUI.updateField('Room', room.roomId);
-  debugUI.updateField('PlayerID', room.sessionId);
+  debugUI.updateField("Room", room.roomId);
+  debugUI.updateField("PlayerID", room.sessionId);
 
   const playerGraphics = new Map<string, Graphics>();
 
@@ -20,30 +20,30 @@ function initGame(app: Application, net: GameNetwork) {
 
   const updatePlayerList = () => {
     const playerIds = Array.from(room.state.players.keys());
-    const shortIds = playerIds.map(id => id.substring(0, 4));
+    const shortIds = playerIds.map((id) => id.substring(0, 4));
 
-    const displayString = `${playerIds.length} [${shortIds.join(', ')}]`;
+    const displayString = `${playerIds.length} [${shortIds.join(", ")}]`;
 
-    debugUI.updateField('Players', displayString);
+    debugUI.updateField("Players", displayString);
   };
 
   // 4. Call it whenever a player joins or leaves
   callbacks.onAdd("players", () => updatePlayerList());
   callbacks.onRemove("players", () => updatePlayerList());
 
-  callbacks.onAdd("players", (player: any, sessionId: string) => {
+  callbacks.onAdd("players", (_, sessionId: string) => {
     const g = new Graphics();
     const isMe = sessionId === room.sessionId;
 
-    const color = isMe ? 0x00FF00 : 0xFF0000;
+    const color = isMe ? 0x00ff00 : 0xff0000;
 
     const style = new TextStyle({
-      fontFamily: 'Consolas,Arial',
+      fontFamily: "Consolas,Arial",
       fontSize: 12,
       fill: 0xffffff,
       stroke: { color: 0x000000, width: 2 },
     });
-    
+
     const label = new Text({ text: sessionId.substring(0, 4), style });
     label.resolution = 2;
 
@@ -51,12 +51,12 @@ function initGame(app: Application, net: GameNetwork) {
     label.y = -12;
 
     g.addChild(label);
-    
+
     g.rect(-10, -10, 20, 20).fill(color);
     app.stage.addChild(g);
 
     if (isMe) {
-      g.zIndex+=1000;
+      g.zIndex += 1000;
     }
 
     playerGraphics.set(sessionId, g);
@@ -64,7 +64,7 @@ function initGame(app: Application, net: GameNetwork) {
 
   setInterval(() => {
     room.ping((ms: number) => {
-      debugUI.updateField('Ping', `${ms}ms`);
+      debugUI.updateField("Ping", `${ms}ms`);
     });
   }, 1000);
 
@@ -95,22 +95,23 @@ function initGame(app: Application, net: GameNetwork) {
   await app.init({ background: "#1099bb", resizeTo: window });
 
   document.getElementById("pixi-container")!.appendChild(app.canvas);
-  debugUI.addField('Version', GAME_VERSION);
-  debugUI.addField('FPS', '0');
-  debugUI.addField('Ping', '0');
-  debugUI.addField('Room', 'Connecting...');
-  debugUI.addField('PlayerID', '...');
-  debugUI.addField('Players', '...');
+  debugUI.addField("Version", GAME_VERSION);
+  debugUI.addField("FPS", "0");
+  debugUI.addField("Ping", "0");
+  debugUI.addField("Room", "Connecting...");
+  debugUI.addField("PlayerID", "...");
+  debugUI.addField("Players", "...");
 
-  app.ticker.add((time) => {
-    debugUI.updateField('FPS', Math.round(app.ticker.FPS));
+  app.ticker.add(() => {
+    debugUI.updateField("FPS", Math.round(app.ticker.FPS));
   });
 
-  connectToGame().then((net: GameNetwork) => {
-    initGame(app,net);
-  }).catch((error) => {
-    console.error("Failed to connect to the game server:", error);
-    debugUI.updateField('Room', 'ERROR! ' + error);
-  });
-
+  connectToGame()
+    .then((net: GameNetwork) => {
+      initGame(app, net);
+    })
+    .catch((error) => {
+      console.error("Failed to connect to the game server:", error);
+      debugUI.updateField("Room", "ERROR! " + error);
+    });
 })();

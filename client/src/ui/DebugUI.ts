@@ -4,23 +4,23 @@ export class DebugUI {
 
   constructor() {
     // 1. Create the main container
-    this.container = document.createElement('div');
-    
+    this.container = document.createElement("div");
+
     // 2. Add some CSS directly in JS so you don't have to touch index.html
     Object.assign(this.container.style, {
-      position: 'fixed',
-      top: '10px',
-      left: '10px',
-      padding: '8px 12px',
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-      color: '#00FF00', // Classic terminal green
-      fontFamily: 'monospace',
-      fontSize: '12px',
-      borderRadius: '4px',
-      pointerEvents: 'none', // Prevents the UI from blocking mouse clicks on the game
-      zIndex: '1000',
-      lineHeight: '1.5',
-      whiteSpace: 'pre' // Keeps formatting clean
+      position: "fixed",
+      top: "10px",
+      left: "10px",
+      padding: "8px 12px",
+      backgroundColor: "rgba(0, 0, 0, 0.7)",
+      color: "#00FF00", // Classic terminal green
+      fontFamily: "monospace",
+      fontSize: "12px",
+      borderRadius: "4px",
+      pointerEvents: "none", // Prevents the UI from blocking mouse clicks on the game
+      zIndex: "1000",
+      lineHeight: "1.5",
+      whiteSpace: "pre", // Keeps formatting clean
     });
 
     document.body.appendChild(this.container);
@@ -29,17 +29,17 @@ export class DebugUI {
   /**
    * Add a new field to the debug UI
    */
-  public addField(key: string, initialValue: string | number = '') {
+  public addField(key: string, initialValue: string | number = "") {
     // Create a row for the field
-    const row = document.createElement('div');
-    
+    const row = document.createElement("div");
+
     // Create the label (e.g., "FPS: ")
-    const label = document.createElement('span');
+    const label = document.createElement("span");
     label.textContent = `${key}: `;
-    label.style.color = '#FFFFFF'; // White label
-    
+    label.style.color = "#FFFFFF"; // White label
+
     // Create the value element that will update
-    const value = document.createElement('span');
+    const value = document.createElement("span");
     value.textContent = String(initialValue);
 
     row.appendChild(label);
