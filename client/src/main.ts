@@ -113,6 +113,7 @@ function initGame(app: Application, net: GameNetwork) {
     const state = remotePlayers.get(sessionId);
     if (state) {
       state.sprite.destroy();
+      state.debugSprite.destroy();
       remotePlayers.delete(sessionId);
     }
   });
@@ -131,8 +132,8 @@ function initGame(app: Application, net: GameNetwork) {
     const steps = predict.tick(now);
 
     for (let i = 0; i < steps; i++) {
-      input.data.moveX = getMoveX();
-      input.data.moveY = getMoveY();
+      input.data.moveX = getMoveX(selfPlayer);
+      input.data.moveY = getMoveY(selfPlayer);
       input.data.interact = isInteractKeyPressed();
       input.send();
     }
