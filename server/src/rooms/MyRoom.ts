@@ -1,7 +1,8 @@
 import { Room, Client, CloseCode, type StepContext } from "colyseus";
-import { MyRoomState, Player, MoveInput } from "./schema/MyRoomState.js";
-import { stepEntity } from "../shared/movement.js";
-import { TICK_RATE, ARENA_WIDTH, ARENA_HEIGHT } from "../shared/constants.js";
+import { Player, MyRoomState } from "../shared/schema/MyRoomState.js";
+import { applyInput, type PlayerEntity } from "../shared/input/applyInput.js";
+import { MoveInput } from "../shared/input/MoveInput.js";
+import { TICK_RATE } from "../shared/constants.js";
 
 export class MyRoom extends Room<{ state: MyRoomState, input: MoveInput }> {
   maxClients = 8;
@@ -13,8 +14,7 @@ export class MyRoom extends Room<{ state: MyRoomState, input: MoveInput }> {
    * so a burst after a stall still replays in order.
    */
   inputs = this.defineInput(MoveInput, {
-    bufferMaxSize: 64,
-    sanitize: { moveX: [-1, 1], moveY: [-1, 1] },
+    bufferMaxSize: 64
   });
 
   private joinCount = 0;
@@ -34,8 +34,8 @@ export class MyRoom extends Room<{ state: MyRoomState, input: MoveInput }> {
     // Deterministic spawn ring, so two players never start on top of each other.
     const angle = this.joinCount++ * 2.399963;
     this.state.players.set(client.sessionId, new Player({
-      x: ARENA_WIDTH / 2 + Math.cos(angle) * 80,
-      y: ARENA_HEIGHT / 2 + Math.sin(angle) * 80,
+      x: 1000 / 2 + Math.cos(angle) * 80,
+      y: 1000 / 2 + Math.sin(angle) * 80,
       vx: 0,
       vy: 0,
     }));
@@ -52,18 +52,23 @@ export class MyRoom extends Room<{ state: MyRoomState, input: MoveInput }> {
 
   /**
    * One shared `stepEntity` per received input, so the set the client predicted
-   * is exactly the set the server applied. A client that sends nothing simply
-   * does not move — an empty tick advances no one.
+   * is exactly the set the server applied.
    */
-  private step(ctx: StepContext) {
+  step(ctx: StepContext) {
     for (const [sessionId, player] of this.state.players) {
-      const channel = this.inputs.get(sessionId);
-      if (!channel) { continue; }
-
-      for (const input of channel) {
-        stepEntity(player, input, ctx.dt);
+      const cmd = this.inputs.get(sessionId).next(); // Get the next buffered input
+      if (cmd) {
+        // Cast the Colyseus state player to our shared PlayerEntity type
+        applyInput(player as unknown as PlayerEntity, cmd as any, ctx.dt);
       }
     }
+    // for (const [sessionId, player] of this.state.players) {
+    //   const channel = this.inputs.get(sessionId);
+    //   if (!channel) { continue; }
+
+    //   for (const input of channel) {
+    //   }
+    // }
   }
 
   /**

@@ -13,6 +13,7 @@ import {
  */
 import { MyRoom } from "./rooms/MyRoom.js";
 
+
 const server = defineServer({
 
   /**
@@ -67,11 +68,34 @@ const server = defineServer({
 
 import { matchMaker } from '@colyseus/core';
 
-matchMaker.controller.getCorsHeaders = function () {
+// 1. Get the matchmaker instance
+const matchmaker = matchMaker;
+
+// 2. Override the CORS headers function
+matchmaker.controller.getCorsHeaders = function (headers) {
+  // Define the origins you want to allow
+  const allowedOrigins = [
+    "https://romeodotjar.github.io", // Your production GitHub Pages
+    "http://localhost:8080",        // Your local dev client
+    "http://localhost:5173"         // Vite's default local port (just in case)
+  ];
+
+  const origin = headers.get('origin');
+  
+  // Check if the request's origin is in our allowed list
+  if (allowedOrigins.includes(origin)) {
+    return {
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+      "Access-Control-Allow-Methods": "OPTIONS, POST, GET",
+    };
+  }
+  
+  // Fallback to a safe default (or deny, but returning the first origin is safer for now)
   return {
-    'Access-Control-Allow-Origin': 'https://romeodotjar.github.io',
-    'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Authorization',
-    'Access-Control-Allow-Methods': 'OPTIONS, POST, GET',
+    "Access-Control-Allow-Origin": '',
+    "Access-Control-Allow-Headers": "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+    "Access-Control-Allow-Methods": "OPTIONS, POST, GET",
   };
 };
 

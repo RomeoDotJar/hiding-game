@@ -17,12 +17,14 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": false,
     "experimentalDecorators": true,
-    "useDefineForClassFields": false
+    "useDefineForClassFields": false,
+
+    "forceConsistentCasingInFileNames": true
   },
   "include": [
     "src",
     "test",
     "loadtest",
     "vite.config.ts"
-  ]
+, "../shared/schema"  ]
 }

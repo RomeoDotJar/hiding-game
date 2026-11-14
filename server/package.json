@@ -8,13 +8,13 @@
     "node": ">= 22.0.0"
   },
   "scripts": {
-    "start": "vite",
     "loadtest": "tsx loadtest/example.ts --room my_room --numClients 2",
-    "build": "vite build",
     "clean": "rimraf dist",
     "test": "mocha -r tsx test/**.test.ts --exit --timeout 15000",
-    "dev": "vite",
-    "build:client": "vite build --mode client"
+    "build:client": "vite build --mode client",
+    "build": "tsc -p tsconfig.prod.json",
+    "start": "npm run build && node build/index.js",
+    "dev": "tsx watch src/index.ts"
   },
   "author": "",
   "license": "UNLICENSED",

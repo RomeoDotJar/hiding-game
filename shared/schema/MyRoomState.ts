@@ -10,12 +10,6 @@ import { schema, t, type SchemaType } from "@colyseus/schema";
  * `int8<-1 | 0 | 1>` narrows the type for your code; the room's `sanitize`
  * clamp is what actually enforces it against a modified client.
  */
-export const MoveInput = schema({
-  moveX: t.int8<-1 | 0 | 1>(),
-  moveY: t.int8<-1 | 0 | 1>(),
-});
-export type MoveInput = SchemaType<typeof MoveInput>;
-
 export const Player = schema({
   x: t.number(),
   y: t.number(),
