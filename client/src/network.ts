@@ -6,12 +6,12 @@ import {
   Room,
   StepContext,
 } from "@colyseus/sdk";
-import { MoveInput } from "../../shared/input/MoveInput.js";
-import { MyRoomState } from "../../shared/schema/MyRoomState.js";
+import { MoveInput } from "./shared/input/MoveInput.js";
+import { MyRoomState } from "./shared/schema/MyRoomState.js";
 import {
   applyInput,
   type PlayerEntity,
-} from "../../shared/input/applyInput.js";
+} from "./shared/input/applyInput.js";
 //import { getMoveX, getMoveY, isInteractKeyPressed } from './input.js';
 
 const useLocalHost = true;

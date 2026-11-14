@@ -1,10 +1,9 @@
-import { GAME_VERSION } from "../../shared/constants.js";
+import { GAME_VERSION } from "./shared/constants.js";
 import { Application, Graphics, Text, TextStyle } from "pixi.js";
 import { connectToGame, GameNetwork } from "./network";
 import { DebugUI } from "./ui/DebugUI.js";
 import { getMoveX, getMoveY, isInteractKeyPressed } from "./input.js";
 import { Callbacks } from "@colyseus/sdk";
-import { Player } from "../../shared/schema/MyRoomState.js";
 
 const debugUI = new DebugUI();
 
@@ -21,7 +20,7 @@ function initGame(app: Application, net: GameNetwork) {
 
   const updatePlayerList = () => {
     const playerIds = Array.from(room.state.players.keys());
-    const shortIds = playerIds.map((id) => id.substring(0, 4));
+    const shortIds = playerIds.map((id: string) => id.substring(0, 4));
 
     const displayString = `${playerIds.length} [${shortIds.join(", ")}]`;
 
@@ -32,7 +31,7 @@ function initGame(app: Application, net: GameNetwork) {
   callbacks.onAdd("players", () => updatePlayerList());
   callbacks.onRemove("players", () => updatePlayerList());
 
-  callbacks.onAdd("players", (_player: Player, sessionId: string) => {
+  callbacks.onAdd("players", (_player: unknown, sessionId: string) => {
     const g = new Graphics();
     const isMe = sessionId === room.sessionId;
 
