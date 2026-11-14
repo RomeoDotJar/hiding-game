@@ -2,12 +2,11 @@ import { Graphics } from "pixi.js";
 
 const keys: Record<string, boolean> = {};
 
-var touchX = -1;
-var touchY = -1;
-function processTouch(e:TouchEvent) {
-  if (e.type == 'end') {
-  }
-  else {
+let touchX = -1;
+let touchY = -1;
+function processTouch(e: TouchEvent) {
+  if (e.type == "end") {
+  } else {
     touchX = e.touches.item(0)?.pageX || touchX;
     touchY = e.touches.item(0)?.pageY || touchY;
   }
@@ -35,12 +34,12 @@ window.addEventListener("keyup", (e) => {
 });
 
 // 1. Get X movement (-1, 0, or 1)
-export function getMoveX(sprite:Graphics): -1 | 0 | 1 {
+export function getMoveX(sprite: Graphics): -1 | 0 | 1 {
   let x: -1 | 0 | 1 = 0;
 
   if (touchX !== -1) {
-    if (sprite.x-10 > touchX) x = -1;
-    if (sprite.x+10 < touchX) x = 1;
+    if (sprite.x - 10 > touchX) x = -1;
+    if (sprite.x + 10 < touchX) x = 1;
     return x;
   }
 
@@ -50,12 +49,12 @@ export function getMoveX(sprite:Graphics): -1 | 0 | 1 {
 }
 
 // 2. Get Y movement (-1, 0, or 1)
-export function getMoveY(sprite:Graphics): -1 | 0 | 1 {
+export function getMoveY(sprite: Graphics): -1 | 0 | 1 {
   let y: -1 | 0 | 1 = 0;
 
   if (touchY !== -1) {
-    if (sprite.y-10 > touchY) y = -1;
-    if (sprite.y+10 < touchY) y = 1;
+    if (sprite.y - 10 > touchY) y = -1;
+    if (sprite.y + 10 < touchY) y = 1;
     return y;
   }
 
