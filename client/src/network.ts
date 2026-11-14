@@ -1,4 +1,11 @@
-import { Callbacks, Client, Predict, Room } from "@colyseus/sdk";
+import {
+  Callbacks,
+  Client,
+  InputHandle,
+  Predict,
+  Room,
+  StepContext,
+} from "@colyseus/sdk";
 import { MoveInput } from "../../shared/input/MoveInput.js";
 import { MyRoomState } from "../../shared/schema/MyRoomState.js";
 import {
@@ -14,9 +21,9 @@ const SERVER_URL =
     : "wss://c07ae97ff283.pr.edgegap.net:32054";
 
 export interface GameNetwork {
-  room: Room<MyRoomState>; // (Type this properly later with your MyRoomState)
-  predict: unknown;
-  input: unknown;
+  room: Room<MyRoomState>;
+  predict: Predict<MyRoomState>;
+  input: InputHandle<MoveInput>;
 }
 
 const PREDICTION_DELAY = 20;
@@ -34,7 +41,7 @@ function initPredict(room: Room): GameNetwork {
 
   predict.reconciler(self, {
     input,
-    step: (ctx, playerState, cmd) =>
+    step: (ctx: StepContext, playerState: unknown, cmd: unknown) =>
       applyInput(
         playerState as unknown as PlayerEntity,
         cmd as MoveInput,

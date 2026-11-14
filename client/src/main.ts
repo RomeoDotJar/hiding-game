@@ -4,6 +4,7 @@ import { connectToGame, GameNetwork } from "./network";
 import { DebugUI } from "./ui/DebugUI.js";
 import { getMoveX, getMoveY, isInteractKeyPressed } from "./input.js";
 import { Callbacks } from "@colyseus/sdk";
+import { Player } from "../../shared/schema/MyRoomState.js";
 
 const debugUI = new DebugUI();
 
@@ -31,7 +32,7 @@ function initGame(app: Application, net: GameNetwork) {
   callbacks.onAdd("players", () => updatePlayerList());
   callbacks.onRemove("players", () => updatePlayerList());
 
-  callbacks.onAdd("players", (_, sessionId: string) => {
+  callbacks.onAdd("players", (_player: Player, sessionId: string) => {
     const g = new Graphics();
     const isMe = sessionId === room.sessionId;
 
