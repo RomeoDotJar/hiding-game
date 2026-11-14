@@ -1,3 +1,4 @@
+import { GAME_VERSION } from '../../shared/constants.js';
 import { Application, Assets, Graphics, Sprite, Text, TextStyle } from "pixi.js";
 import { connectToGame, GameNetwork } from './network';
 import { DebugUI } from "./ui/DebugUI.js";
@@ -94,6 +95,7 @@ function initGame(app: Application, net: GameNetwork) {
   await app.init({ background: "#1099bb", resizeTo: window });
 
   document.getElementById("pixi-container")!.appendChild(app.canvas);
+  debugUI.addField('Version', GAME_VERSION);
   debugUI.addField('FPS', '0');
   debugUI.addField('Ping', '0');
   debugUI.addField('Room', 'Connecting...');
