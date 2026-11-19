@@ -1,19 +1,33 @@
-import { GAME_VERSION, TILEMAP_UPSCALE, USE_LOCALHOST } from "./shared/constants.js";
-import { Application, Assets, Container, Graphics, Rectangle, Sprite, Text, TextStyle, Texture, TextureStyle } from "pixi.js";
+import {
+  GAME_VERSION,
+  TILEMAP_UPSCALE,
+  USE_LOCALHOST,
+} from "./shared/constants.js";
+import {
+  Application,
+  Assets,
+  Container,
+  Graphics,
+  Rectangle,
+  Sprite,
+  Text,
+  TextStyle,
+  Texture,
+  TextureStyle,
+} from "pixi.js";
 import { connectToGame, GameNetwork } from "./network";
 import { DebugUI } from "./ui/DebugUI.js";
 import { getMoveX, getMoveY, isInteractKeyPressed } from "./input.js";
 import { Callbacks } from "@colyseus/sdk";
 import { PROXY_URL } from "./shared/constants.js";
 import { Player } from "./shared/schema/MyRoomState.js";
-    import { TiledMap } from './shared/world/TiledMap.js';
+import { TiledMap } from "./shared/world/TiledMap.js";
 import { WorldMap } from "./shared/world/WorldMap.js";
 
 const debugUI = new DebugUI();
 
 async function updateUptime() {
-  if (USE_LOCALHOST)
-    return;
+  if (USE_LOCALHOST) return;
   try {
     const response = await fetch(`${PROXY_URL}/get-uptime`);
     const data = await response.json();
@@ -53,9 +67,9 @@ function initGame(app: Application, net: GameNetwork) {
   let selfPlayer: Graphics;
   let selfPlayerDebug: Graphics;
 
-  let playerContainer: Container = new Container();
+  const playerContainer: Container = new Container();
   playerContainer.sortableChildren = true;
-  let debugContainer: Container = new Container();
+  const debugContainer: Container = new Container();
 
   const callbacks = Callbacks.get(room);
 
@@ -139,13 +153,20 @@ function initGame(app: Application, net: GameNetwork) {
   setInterval(updateUptime, 15000);
   updateUptime();
 
-  let mouseX:number;
-  let mouseY:number;
-  let mouseRay = new Graphics();
+  let mouseX: number;
+  let mouseY: number;
+  const mouseRay = new Graphics();
 
   let hubWorld: WorldMap;
 
-  document.addEventListener('mousemove', (ev:MouseEvent)=>{mouseX=ev.pageX;mouseY=ev.pageY;}, false);
+  document.addEventListener(
+    "mousemove",
+    (ev: MouseEvent) => {
+      mouseX = ev.pageX;
+      mouseY = ev.pageY;
+    },
+    false,
+  );
 
   app.ticker.add(() => {
     const now = performance.now();
@@ -229,7 +250,7 @@ function initGame(app: Application, net: GameNetwork) {
       } else if (sessionId === room.sessionId && selfPlayer) {
         selfPlayer.x = predict.value(player, "x") * TILEMAP_UPSCALE;
         selfPlayer.y = predict.value(player, "y") * TILEMAP_UPSCALE;
-        
+
         selfPlayerDebug.x = player.x * TILEMAP_UPSCALE;
         selfPlayerDebug.y = player.y * TILEMAP_UPSCALE;
       }
@@ -247,7 +268,7 @@ function initGame(app: Application, net: GameNetwork) {
       let isCollidingRightNow = false;
 
       // 2. Check distance against all remote players
-      for (const [_sessionId, state] of remotePlayers) {
+      for (const [, state] of remotePlayers) {
         const dx = state.renderedX - localX;
         const dy = state.renderedY - localY;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -263,41 +284,47 @@ function initGame(app: Application, net: GameNetwork) {
         room.send("tag_attempt");
       }
     }
-    
-    if (hubWorld===undefined || mouseX===undefined || mouseY===undefined)
-      return;
-    
-    let ray = hubWorld.raycast(selfPlayer.x/TILEMAP_UPSCALE,selfPlayer.y/TILEMAP_UPSCALE, mouseX/TILEMAP_UPSCALE,mouseY/TILEMAP_UPSCALE);
 
-    if (ray===null) {
-      ray = {x:mouseX,y:mouseY};
-    }
-    else {
+    if (hubWorld === undefined || mouseX === undefined || mouseY === undefined)
+      return;
+
+    let ray = hubWorld.raycast(
+      selfPlayer.x / TILEMAP_UPSCALE,
+      selfPlayer.y / TILEMAP_UPSCALE,
+      mouseX / TILEMAP_UPSCALE,
+      mouseY / TILEMAP_UPSCALE,
+    );
+
+    if (ray === null) {
+      ray = { x: mouseX, y: mouseY };
+    } else {
       ray.x *= TILEMAP_UPSCALE;
       ray.y *= TILEMAP_UPSCALE;
     }
 
     mouseRay
       .clear()
-      .moveTo(selfPlayer.x,selfPlayer.y)
-      .lineTo(ray.x,ray.y)
+      .moveTo(selfPlayer.x, selfPlayer.y)
+      .lineTo(ray.x, ray.y)
       .stroke({ width: 2, color: 0x00ff00 });
   });
 
   app.stage.addChild(mouseRay);
-  
+
   // TILEMAP INIT
   async function loadHubMap() {
-    const response = await fetch('assets/test..tmj');
+    const response = await fetch("assets/test..tmj");
     const mapData: TiledMap = await response.json();
-    
+
     hubWorld = new WorldMap(mapData);
 
     console.log("Map dimensions:", mapData.width, "x", mapData.height);
     console.log("Map data:", mapData);
 
     const tilesetInfo = mapData.tilesets[0];
-    const baseTexture = await Assets.load(`assets/${tilesetInfo.source.split('.')[0]}.png`);
+    const baseTexture = await Assets.load(
+      `assets/${tilesetInfo.source.split(".")[0]}.png`,
+    );
 
     const renderScale = TILEMAP_UPSCALE;
 
@@ -312,7 +339,7 @@ function initGame(app: Application, net: GameNetwork) {
           col * mapData.tilewidth,
           row * mapData.tileheight,
           mapData.tilewidth,
-          mapData.tileheight
+          mapData.tileheight,
         );
         tileTextures[gid] = new Texture({ source: baseTexture.source, frame });
         gid++;
@@ -322,7 +349,7 @@ function initGame(app: Application, net: GameNetwork) {
     const mapContainer = new Container();
 
     for (const layer of mapData.layers) {
-      if (layer.type !== 'tilelayer' || !layer.visible || !layer.data) continue;
+      if (layer.type !== "tilelayer" || !layer.visible || !layer.data) continue;
       console.log(layer);
 
       const layerContainer = new Container();
@@ -338,7 +365,7 @@ function initGame(app: Application, net: GameNetwork) {
 
         if (texture) {
           const sprite = new Sprite(texture);
-          sprite.anchor = .5;
+          sprite.anchor = 0.5;
           sprite.width *= renderScale;
           sprite.height *= renderScale;
           const col = i % (layer.width ?? 10);
@@ -359,17 +386,19 @@ function initGame(app: Application, net: GameNetwork) {
             sprite.scale.y *= flipV ? -1 : 1;
           }
 
-          sprite.x = (col+.5) * mapData.tilewidth * renderScale;
-          sprite.y = (row+.5) * mapData.tileheight * renderScale;
+          sprite.x = (col + 0.5) * mapData.tilewidth * renderScale;
+          sprite.y = (row + 0.5) * mapData.tileheight * renderScale;
           layerContainer.addChild(sprite);
         }
       }
 
-      if (layer.properties?.find((prop)=>prop.name=='Background')?.value !== true) {
+      if (
+        layer.properties?.find((prop) => prop.name == "Background")?.value !==
+        true
+      ) {
         try {
           mapContainer.getChildIndex(playerContainer);
-        }
-        catch(e) {
+        } catch {
           mapContainer.addChild(debugContainer);
           mapContainer.addChild(playerContainer);
 
@@ -384,17 +413,19 @@ function initGame(app: Application, net: GameNetwork) {
 
     // Add the rendered map to your PixiJS stage (at index 0 so it stays behind entities)
     app.stage.addChildAt(mapContainer, 0);
-    
+
     // Find the spawn area object
-    const objectsLayer = mapData.layers.find(l => l.name === 'Objs');
-    const spawnArea = objectsLayer?.objects?.find(o => o.type === 'SpawnArea');
-    
+    const objectsLayer = mapData.layers.find((l) => l.name === "Objs");
+    const spawnArea = objectsLayer?.objects?.find(
+      (o) => o.type === "SpawnArea",
+    );
+
     console.log("Spawn Area found at:", spawnArea?.x, spawnArea?.y);
   }
   loadHubMap();
 }
 
-TextureStyle.defaultOptions.scaleMode = 'nearest';
+TextureStyle.defaultOptions.scaleMode = "nearest";
 
 const FLIP_H = 0x80000000;
 const FLIP_V = 0x40000000;
@@ -418,10 +449,9 @@ const FLIP_D = 0x20000000;
     debugUI.updateField("FPS", Math.round(app.ticker.FPS));
   });
 
-  window.addEventListener("keydown",(ev:KeyboardEvent) => {
+  window.addEventListener("keydown", (ev: KeyboardEvent) => {
     //console.log(ev.key);
-    if (ev.key=='`')
-      debugUI.setVisible(!debugUI.isVisible());
+    if (ev.key == "`") debugUI.setVisible(!debugUI.isVisible());
   });
 
   connectToGame()

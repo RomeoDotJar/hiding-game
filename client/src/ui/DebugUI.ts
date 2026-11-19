@@ -73,14 +73,14 @@ export class DebugUI {
   }
 
   /**
-  * Toggle the UI's visibility
-  */
+   * Toggle the UI's visibility
+   */
   public setVisible(visible: boolean) {
     this.container.hidden = !visible;
   }
 
   /**
-  * Returns the UI's visibility
-  */
+   * Returns the UI's visibility
+   */
   public isVisible = () => !this.container.hidden;
 }

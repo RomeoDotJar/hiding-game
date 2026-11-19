@@ -11,8 +11,8 @@
             "scale": 4,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 127.5,
-                "y": 48
+                "x": 127.25,
+                "y": 47.75
             }
         },
         "dev/test.tmx": {

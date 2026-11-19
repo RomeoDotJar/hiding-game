@@ -26,8 +26,7 @@ async function getServerUrl(): Promise<string> {
 
   if (data.url) {
     return data.url;
-  }
-  else {
+  } else {
     console.log("Server is unavailable yet, please wait...");
     await new Promise((resolve) => setTimeout(resolve, 5000));
     return getServerUrl();

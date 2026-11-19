@@ -1,13 +1,19 @@
-import { Component } from '@esengine/ecs-framework';
+import { Component } from "@esengine/ecs-framework";
 
 export class TransformComponent extends Component {
-  constructor(public x: number = 0, public y: number = 0) {
+  constructor(
+    public x: number = 0,
+    public y: number = 0,
+  ) {
     super();
   }
 }
 
 export class VelocityComponent extends Component {
-  constructor(public vx: number = 0, public vy: number = 0) {
+  constructor(
+    public vx: number = 0,
+    public vy: number = 0,
+  ) {
     super();
   }
 }
