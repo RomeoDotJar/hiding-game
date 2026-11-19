@@ -1,6 +1,5 @@
 import type { MoveInput } from "./MoveInput";
 
-
 // A simple interface for a player entity
 export interface PlayerEntity {
   x: number;
@@ -13,7 +12,7 @@ export interface PlayerEntity {
 // The deterministic step function. Run this on BOTH client and server.
 export function applyInput(player: PlayerEntity, cmd: MoveInput, dt: number) {
   // 1. Movement (simple example: speed of 100 units per second)
-  const speed = 200;
+  const speed = 100;
   player.vx = cmd.moveX * speed * dt;
   player.vy = cmd.moveY * speed * dt;
 

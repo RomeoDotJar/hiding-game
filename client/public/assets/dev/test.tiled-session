@@ -1,0 +1,64 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "test.tmx",
+    "automapping.whileDrawing": true,
+    "expandedProjectPaths": [
+        "."
+    ],
+    "fileStates": {
+        "": {
+            "scaleInDock": 5.5
+        },
+        "rule.tmx": {
+            "scale": 4,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 128.5,
+                "y": 80.125
+            }
+        },
+        "test.tmx": {
+            "expandedObjectLayers": [
+                3
+            ],
+            "scale": 4,
+            "selectedLayer": 0,
+            "viewCenter": {
+                "x": 119.875,
+                "y": 79.875
+            }
+        },
+        "test.tmx#tilemap_packed": {
+            "scaleInDock": 1
+        },
+        "tilemap_packed.tsx": {
+            "scaleInDock": 5.5,
+            "scaleInEditor": 16
+        }
+    },
+    "last.exportedFilePath": "C:/Workspace/JavaScript/PixiJS/HidingGame/client/public/assets",
+    "last.imagePath": "C:/Workspace/JavaScript/PixiJS/HidingGame/client/public/assets",
+    "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
+    "map.lastUsedFormat": "tmx",
+    "map.tileHeight": 8,
+    "map.tileWidth": 8,
+    "openFiles": [
+        "test.tmx",
+        "tilemap_packed.tsx",
+        "rule.tmx"
+    ],
+    "project": "test.tiled-project",
+    "recentFiles": [
+        "rule.tmx",
+        "tilemap_packed.tsx",
+        "test.tmx"
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.tileSize": {
+        "height": 8,
+        "width": 8
+    }
+}

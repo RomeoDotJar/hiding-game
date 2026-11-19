@@ -26,6 +26,9 @@ window.addEventListener("keydown", (e) => {
     e.preventDefault();
   }
   keys[e.code] = true;
+  
+  touchX = -1;
+  touchY = -1;
 });
 
 window.addEventListener("keyup", (e) => {

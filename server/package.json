@@ -33,9 +33,14 @@
   },
   "dependencies": {
     "@colyseus/playground": "^0.18.3",
-    "@colyseus/schema": "^5.0.14",
+    "@colyseus/schema": "^5.0.50",
     "@colyseus/tools": "^0.18.1",
+    "@colyseus/uwebsockets-transport": "^0.18.5",
+    "@esengine/ecs-framework": "^2.11.2",
+    "@yinghe/uwebsockets": "^20.66.0",
     "colyseus": "^0.18.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "uwebsockets-express": "^2.0.4",
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.70.0"
   }
 }

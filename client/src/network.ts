@@ -27,14 +27,11 @@ async function getServerUrl(): Promise<string> {
   if (data.url) {
     return data.url;
   }
-
-  if (data.status === "deploying") {
-    console.log("Server is deploying, please wait...");
+  else {
+    console.log("Server is unavailable yet, please wait...");
     await new Promise((resolve) => setTimeout(resolve, 5000));
     return getServerUrl();
   }
-
-  throw new Error("Failed to obtain server URL");
 }
 
 export interface GameNetwork {

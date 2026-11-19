@@ -1,0 +1,24 @@
+WorldWrapper:
+- stores map data
+- provides helper functions for raycasts and collision checks between entities and map tiles and areas
+- provides a list of entity spawners
+- updates entities that are active in it to ensure collision works properly. (generally, idle players will be in the Hub, meanwhile active players and monsters will be in the GameBoard)
+- clientOnly:
+	* renders shit
+	* collision and raycasting are shared checks
+
+MyRoom:
+- reconciles players network-wise
+- ticks WorldWrapper and FaunaWrapper
+- network rewinding
+
+FaunaWrapper:
+- handles updating entities relative to themselves and to each other
+- classifies entities (player, monster, particles, etc.)
+- handles remote event from the players
+- clientOnly:
+	* renders shit
+	* entities updates also happen on the client
+
+Entity:
+- a point in space with a rendering client-only tick and a behavioral shared tick

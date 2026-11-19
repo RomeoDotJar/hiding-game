@@ -1,3 +1,5 @@
+import { uWebSocketsTransport } from "@colyseus/uwebsockets-transport";
+import uWS from "uWebSockets.js";
 import {
   defineServer,
   defineRoom,
@@ -13,8 +15,12 @@ import {
  */
 import { MyRoom } from "./rooms/MyRoom.js";
 
-
 const server = defineServer({
+
+  transport: new uWebSocketsTransport({
+    maxBackpressure: 256 * 1024,
+    compression: uWS.DISABLED
+  }),
 
   /**
    * Define your room handlers:

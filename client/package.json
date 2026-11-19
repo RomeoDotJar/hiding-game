@@ -15,6 +15,7 @@
     "@colyseus/schema": "^5.0.48",
     "@colyseus/sdk": "^0.18.10",
     "@esengine/ecs-framework": "^2.11.2",
+    "@pixi/tilemap": "^5.0.2",
     "pixi.js": "^8.8.1"
   },
   "devDependencies": {
