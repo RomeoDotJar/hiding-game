@@ -2,7 +2,6 @@ import type {
   TiledLayer,
   TiledLayerProperty,
   TiledMap,
-  TiledObject,
 } from "../TiledMap.js";
 import type { MapGenerationConfig } from "./config/MapGenerationConfig.js";
 import type { ConnectivityResult } from "./ConnectivityGenerator.js";
