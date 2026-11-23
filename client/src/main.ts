@@ -550,9 +550,9 @@ async function renderMapData(
       try {
         cameraContainer.getChildIndex(playerContainer);
       } catch {
+        cameraContainer.addChild(objectContainer);
         cameraContainer.addChild(debugContainer);
         cameraContainer.addChild(playerContainer);
-        cameraContainer.addChild(objectContainer);
       }
     }
 
