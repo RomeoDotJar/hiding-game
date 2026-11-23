@@ -1,18 +1,31 @@
 {
-    "activeFile": "test.tmx",
+    "activeFile": "dev/test.tmx",
     "expandedProjectPaths": [
-        "."
+        ".",
+        "dev"
     ],
+    "file.lastUsedOpenFilter": "All Files (*)",
     "fileStates": {
         "": {
+            "scaleInDock": 1
+        },
+        "C:/Users/user/Downloads/generated-example.tmj": {
+            "scale": 2,
+            "selectedLayer": 3,
+            "viewCenter": {
+                "x": 131.5,
+                "y": 83.5
+            }
+        },
+        "C:/Users/user/Downloads/tilemap_packed.tsx": {
             "scaleInDock": 1
         },
         "dev/rule.tmx": {
             "scale": 4,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 127.25,
-                "y": 47.75
+                "x": 119.875,
+                "y": 80.125
             }
         },
         "dev/test.tmx": {
@@ -22,8 +35,8 @@
             "scale": 4,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 119,
-                "y": 61.75
+                "x": 110.5,
+                "y": 80.25
             }
         },
         "dev/test.tmx#tilemap_packed": {
@@ -53,22 +66,34 @@
             "scaleInDock": 1
         },
         "tilemap_packed.tsx": {
+            "dynamicWrapping": true,
             "scaleInDock": 5.5,
-            "scaleInEditor": 16
+            "scaleInEditor": 5.5
         }
     },
     "last.exportedFilePath": "C:/Workspace/JavaScript/PixiJS/HidingGame/client/public/assets",
+    "last.externalTilesetPath": "C:/Workspace/JavaScript/PixiJS/HidingGame/client/public/assets",
+    "last.imagePath": "C:/Workspace/JavaScript/PixiJS/HidingGame/client/public/assets",
     "map.lastUsedExportFilter": "JSON map files (*.tmj *.json)",
     "openFiles": [
-        "test.tmx",
+        "dev/test.tmx",
+        "dev/rule.tmx",
         "tilemap_packed.tsx",
-        "rule.tmx"
+        "C:/Users/user/Downloads/generated-example.tmj"
     ],
     "project": "test.tiled-project",
     "property.type": "bool",
     "recentFiles": [
-        "rule.tmx",
+        "C:/Users/user/Downloads/generated-example.tmj",
         "tilemap_packed.tsx",
+        "dev/rule.tmx",
+        "dev/test.tmx",
+        "rule.tmx",
         "test.tmx"
-    ]
+    ],
+    "tileset.lastUsedFormat": "tsx",
+    "tileset.tileSize": {
+        "height": 8,
+        "width": 8
+    }
 }

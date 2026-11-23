@@ -8,42 +8,77 @@ export interface TiledMap {
 }
 
 export interface TiledLayer {
+  id?: number;
+
   name: string;
   type: "tilelayer" | "objectgroup";
-  data?: number[]; // Present if type === "tilelayer"
-  objects?: TiledObject[]; // Present if type === "objectgroup"
+
+  data?: number[];
+  objects?: TiledObject[];
+
   width?: number;
   height?: number;
+
+  x?: number;
+  y?: number;
+
   visible?: boolean;
   opacity?: number;
+
+  draworder?: string;
+
   properties?: TiledLayerProperty[];
 }
 
 export interface TiledLayerProperty {
   name: string;
   type: string;
-  value: unknown;
+  value: any;
 }
 
 export interface TiledObject {
   id: number;
   name: string;
-  type: string; // e.g., "spawn_area", "interact_chest"
+  type: string;
+
   x: number;
   y: number;
+
   width: number;
   height: number;
-  properties?: { name: string; type: string; value: unknown }[];
+
+  rotation?: number;
+  visible?: boolean;
+  point?: boolean;
+
+  properties?: {
+    name: string;
+    type: string;
+    value: any;
+  }[];
 }
 
-export interface TiledTileset {
-  columns: number;
-  spacing: number;
-  tileheight: number;
-  tilewidth: number;
-  tilecount: number;
+export interface TiledExternalTileset {
   firstgid: number;
   source: string;
-  imageheight: number;
-  imagewidth: number;
 }
+
+export interface TiledEmbeddedTileset {
+  firstgid: number;
+  name: string;
+
+  tilewidth: number;
+  tileheight: number;
+
+  tilecount: number;
+  columns: number;
+
+  image?: string;
+  imagewidth?: number;
+  imageheight?: number;
+
+  spacing?: number;
+  margin?: number;
+}
+
+export type TiledTileset = TiledExternalTileset;

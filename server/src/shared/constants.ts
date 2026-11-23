@@ -1,5 +1,5 @@
-export const GAME_VERSION = "0.8";
-export const TICK_RATE = 120;
+export const GAME_VERSION = "v0.9";
+export const TICK_RATE = 60;
 
 export const PROXY_URL =
   "https://server-proxy.romeodotjar-hiding-game.workers.dev";

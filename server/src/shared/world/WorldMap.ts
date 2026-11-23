@@ -1,4 +1,3 @@
-import { TILEMAP_UPSCALE } from "../constants";
 import { TiledLayer, TiledMap, TiledObject } from "./TiledMap";
 
 export class WorldMap {
@@ -8,7 +7,7 @@ export class WorldMap {
   cols: number;
   rows: number;
 
-  objLayer: TiledLayer;
+  objLayer?: TiledLayer;
   
   // A flat 1D array for blazing-fast collision checks
   // 0 = empty, 1 = solid wall
@@ -22,7 +21,7 @@ export class WorldMap {
     this.cols = mapData.width;
     this.rows = mapData.height;
 
-    this.objLayer = mapData.layers.find((val:TiledLayer)=>val.name=='Objs');
+    this.objLayer = this.mapData.layers.find(l => l.type === "objectgroup");
     
     this.collisionGrid = new Uint8Array(this.cols * this.rows);
     this.buildCollisionGrid();
@@ -40,8 +39,15 @@ export class WorldMap {
     }
   }
 
-  public getObj(predicate: (value: TiledObject, index: number) => unknown) {
-    return this.objLayer.objects.find(predicate);
+  public getObjects(typeFilter?: string): TiledObject[] | undefined {
+    if (typeFilter) {
+      return this.objLayer?.objects?.filter(obj => obj.type === typeFilter);
+    }
+    return this.objLayer?.objects;
+  }
+
+  public findObject(predicate: (value: TiledObject, index: number) => unknown) {
+    return this.objLayer?.objects?.find(predicate);
   }
 
   // Check if a specific grid cell is solid
@@ -188,4 +194,6 @@ export class WorldMap {
 
     return null; // Clear line of sight
   }
+
+  
 }

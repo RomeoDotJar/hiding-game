@@ -7,9 +7,11 @@ import {
   StepContext,
 } from "@colyseus/sdk";
 import { MoveInput } from "./shared/input/MoveInput.js";
-import { MyRoomState } from "./shared/schema/MyRoomState.js";
-import { applyInput, type PlayerEntity } from "./shared/input/applyInput.js";
+import { MyRoomState, Player, WorldInfo } from "./shared/schema/MyRoomState.js";
+import { applyInput } from "./shared/input/applyInput.js";
 import { LOCAL_URL, PROXY_URL, USE_LOCALHOST } from "./shared/constants.js";
+import { WorldMap } from "./shared/world/WorldMap.js";
+import { loadMapData } from "./shared/world/load.js";
 //import { getMoveX, getMoveY, isInteractKeyPressed } from './input.js';
 
 const useLocalHost = USE_LOCALHOST;
@@ -39,15 +41,18 @@ export interface GameNetwork {
   input: InputHandle<MoveInput>;
 }
 
-const PREDICTION_DELAY = 5;
-const SMOOTHING = 15;
+const PREDICTION_DELAY = 1;
+const SMOOTHING = 2;
 
-function initPredict(room: Room): GameNetwork {
-  const predict = Predict.get(room, {
-    mode: "extrapolate",
-    delay: PREDICTION_DELAY,
-    snap: 150,
-  });
+let predict: Predict;
+function initPredict(room: Room, worldMap?: WorldMap): GameNetwork {
+  if (!predict) {
+      predict = Predict.get(room, {
+      mode: "lerp",
+      delay: PREDICTION_DELAY,
+      snap: 100,
+    });
+  }
 
   // Built-in approach. Replaced with a custom one
   // predict.attachAll("players", {
@@ -66,14 +71,29 @@ function initPredict(room: Room): GameNetwork {
 
   const self = room.state.players.get(room.sessionId);
   const input = room.input({ type: MoveInput });
+  
+  console.log("Moved to world",self.worldId);
+
+  room.onMessage("moveToWorld", ({ worldInfo, worldId }) => {
+    console.log("moveToWorld",worldInfo);
+
+    loadMapData(worldInfo).then((loadedWorldMap?: WorldMap) => {
+      worldMap = loadedWorldMap;
+      console.log("Moved to world",worldId);
+    });
+  });
 
   predict.reconciler(self, {
     input,
     step: (ctx: StepContext, playerState: unknown, cmd: unknown) =>
       applyInput(
-        playerState as unknown as PlayerEntity,
+        playerState as unknown as Player,
         cmd as MoveInput,
         ctx.dt,
+        () => {
+          return worldMap;
+        },
+        2
       ),
     smoothMs: SMOOTHING,
     snap: 150,
@@ -82,7 +102,7 @@ function initPredict(room: Room): GameNetwork {
   return { room, predict, input };
 }
 
-export async function connectToGame(): Promise<GameNetwork> {
+export async function connectToGame(worldMap?: WorldMap): Promise<GameNetwork> {
   const serverUrl = await getServerUrl();
   console.log("Connecting to:", serverUrl);
   const client = new Client(serverUrl);
@@ -117,14 +137,28 @@ export async function connectToGame(): Promise<GameNetwork> {
       room.state.players !== undefined &&
       room.state.players.has(room.sessionId)
     ) {
-      resolve(initPredict(room));
+
+      let worldId = room.state.players.get(room.sessionId)?.worldId;
+      let worldInfo = room.state.worlds.get(worldId!);
+      loadMapData(worldInfo!).then((newMap) => {
+        console.log(newMap);
+        worldMap = newMap!;
+        resolve(initPredict(room, worldMap));
+      });
       return;
     }
 
     const callbacks = Callbacks.get(room);
     callbacks.onAdd("players", () => {
       if (room.state.players.has(room.sessionId)) {
-        resolve(initPredict(room));
+
+        let worldId = room.state.players.get(room.sessionId)?.worldId;
+        let worldInfo = room.state.worlds.get(worldId!);
+        loadMapData(worldInfo!).then((newMap) => {
+          console.log(newMap);
+          worldMap = newMap!;
+          resolve(initPredict(room, worldMap));
+        });
       }
     });
   });

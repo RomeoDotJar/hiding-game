@@ -1,4 +1,4 @@
-import { TiledMap } from "./TiledMap";
+import { TiledLayer, TiledMap, TiledObject } from "./TiledMap";
 
 export class WorldMap {
   mapData: TiledMap;
@@ -7,6 +7,8 @@ export class WorldMap {
   cols: number;
   rows: number;
 
+  objLayer?: TiledLayer;
+  
   // A flat 1D array for blazing-fast collision checks
   // 0 = empty, 1 = solid wall
   collisionGrid: Uint8Array;
@@ -19,12 +21,14 @@ export class WorldMap {
     this.cols = mapData.width;
     this.rows = mapData.height;
 
+    this.objLayer = this.mapData.layers.find(l => l.type === "objectgroup");
+    
     this.collisionGrid = new Uint8Array(this.cols * this.rows);
     this.buildCollisionGrid();
   }
 
   private buildCollisionGrid() {
-    const wallsLayer = this.mapData.layers.find((l) => l.name === "wall");
+    const wallsLayer = this.mapData.layers.find(l => l.name === "wall");
     if (!wallsLayer || !wallsLayer.data) return;
 
     // Tiled uses 0 for empty. Any ID > 0 is a wall tile in this layer.
@@ -33,6 +37,17 @@ export class WorldMap {
         this.collisionGrid[i] = 1;
       }
     }
+  }
+
+  public getObjects(typeFilter?: string): TiledObject[] | undefined {
+    if (typeFilter) {
+      return this.objLayer?.objects?.filter(obj => obj.type === typeFilter);
+    }
+    return this.objLayer?.objects;
+  }
+
+  public findObject(predicate: (value: TiledObject, index: number) => unknown) {
+    return this.objLayer?.objects?.find(predicate);
   }
 
   // Check if a specific grid cell is solid
@@ -87,12 +102,7 @@ export class WorldMap {
    * Traces a ray from (x1, y1) to (x2, y2) and returns the exact point of intersection with a wall.
    * Returns null if the line of sight is clear.
    */
-  public raycast(
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-  ): { x: number; y: number } | null {
+  public raycast(x1: number, y1: number, x2: number, y2: number): { x: number, y: number } | null {
     // 0. Check if starting point is already inside a wall
     const startTileX = Math.floor(x1 / this.tileWidth);
     const startTileY = Math.floor(y1 / this.tileHeight);
@@ -102,7 +112,7 @@ export class WorldMap {
 
     const dx = x2 - x1;
     const dy = y2 - y1;
-
+    
     // Distance to travel
     const distance = Math.sqrt(dx * dx + dy * dy);
     if (distance === 0) return null;
@@ -161,14 +171,12 @@ export class WorldMap {
 
         if (side === 0) {
           // Hit a vertical wall (left or right edge of the tile)
-          hitX =
-            stepX > 0 ? mapX * this.tileWidth : (mapX + 1) * this.tileWidth;
+          hitX = (stepX > 0) ? mapX * this.tileWidth : (mapX + 1) * this.tileWidth;
           // Use linear interpolation to find the exact Y coordinate
           hitY = y1 + (hitX - x1) * (dy / dx);
         } else {
           // Hit a horizontal wall (top or bottom edge of the tile)
-          hitY =
-            stepY > 0 ? mapY * this.tileHeight : (mapY + 1) * this.tileHeight;
+          hitY = (stepY > 0) ? mapY * this.tileHeight : (mapY + 1) * this.tileHeight;
           // Use linear interpolation to find the exact X coordinate
           hitX = x1 + (hitY - y1) * (dx / dy);
         }
@@ -178,12 +186,14 @@ export class WorldMap {
 
       // Stop if we've gone further than the target distance
       const currentDist = Math.sqrt(
-        Math.pow((mapX + 0.5) * this.tileWidth - x1, 2) +
-          Math.pow((mapY + 0.5) * this.tileHeight - y1, 2),
+        Math.pow((mapX + 0.5) * this.tileWidth - x1, 2) + 
+        Math.pow((mapY + 0.5) * this.tileHeight - y1, 2)
       );
       if (currentDist > distance) break;
     }
 
     return null; // Clear line of sight
   }
+
+  
 }
