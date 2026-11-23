@@ -14,7 +14,7 @@ import { WorldMap } from "./shared/world/WorldMap.js";
 import { LoadedMapData, loadMapData } from "./shared/world/utils/load.js";
 //import { getMoveX, getMoveY, isInteractKeyPressed } from './input.js';
 
-const useLocalHost = USE_LOCALHOST;
+const useLocalHost = USE_LOCALHOST && import.meta.env.DEV;
 //const SERVER_URL =
 //  import.meta.env.DEV && useLocalHost
 //    ? "ws://localhost:2567"

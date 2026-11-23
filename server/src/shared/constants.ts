@@ -1,4 +1,4 @@
-export const GAME_VERSION = "v0.9";
+export const GAME_VERSION = "v0.10";
 export const TICK_RATE = 60;
 
 export const PROXY_URL =

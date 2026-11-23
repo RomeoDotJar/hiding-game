@@ -750,6 +750,7 @@ export class TilemapAssembler {
     }
   }
 
+  /* eslint-disable @typescript-eslint/no-unused-vars */
   private assertUniqueTiledObjectIds(objects: readonly TiledObject[]): void {
     const ids = new Set<number>();
 
@@ -763,6 +764,7 @@ export class TilemapAssembler {
       ids.add(object.id);
     }
   }
+  /* eslint-enable @typescript-eslint/no-unused-vars */
 
   private index(x: number, y: number): number {
     return y * this.width + x;
