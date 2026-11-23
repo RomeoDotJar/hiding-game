@@ -7,7 +7,7 @@ import {
   StepContext,
 } from "@colyseus/sdk";
 import { MoveInput } from "./shared/input/MoveInput.js";
-import { MyRoomState, Player, WorldInfo } from "./shared/schema/MyRoomState.js";
+import { MyRoomState, Player } from "./shared/schema/MyRoomState.js";
 import { applyInput } from "./shared/input/applyInput.js";
 import { LOCAL_URL, PROXY_URL, USE_LOCALHOST } from "./shared/constants.js";
 import { WorldMap } from "./shared/world/WorldMap.js";
@@ -47,7 +47,7 @@ const SMOOTHING = 2;
 let predict: Predict;
 function initPredict(room: Room, worldMap?: WorldMap): GameNetwork {
   if (!predict) {
-      predict = Predict.get(room, {
+    predict = Predict.get(room, {
       mode: "lerp",
       delay: PREDICTION_DELAY,
       snap: 100,
@@ -71,15 +71,15 @@ function initPredict(room: Room, worldMap?: WorldMap): GameNetwork {
 
   const self = room.state.players.get(room.sessionId);
   const input = room.input({ type: MoveInput });
-  
-  console.log("Moved to world",self.worldId);
+
+  console.log("Moved to world", self.worldId);
 
   room.onMessage("moveToWorld", ({ worldInfo, worldId }) => {
-    console.log("moveToWorld",worldInfo);
+    console.log("moveToWorld", worldInfo);
 
     loadMapData(worldInfo).then((loadedWorldMap?: WorldMap) => {
       worldMap = loadedWorldMap;
-      console.log("Moved to world",worldId);
+      console.log("Moved to world", worldId);
     });
   });
 
@@ -93,7 +93,7 @@ function initPredict(room: Room, worldMap?: WorldMap): GameNetwork {
         () => {
           return worldMap;
         },
-        2
+        2,
       ),
     smoothMs: SMOOTHING,
     snap: 150,
@@ -137,9 +137,8 @@ export async function connectToGame(worldMap?: WorldMap): Promise<GameNetwork> {
       room.state.players !== undefined &&
       room.state.players.has(room.sessionId)
     ) {
-
-      let worldId = room.state.players.get(room.sessionId)?.worldId;
-      let worldInfo = room.state.worlds.get(worldId!);
+      const worldId = room.state.players.get(room.sessionId)?.worldId;
+      const worldInfo = room.state.worlds.get(worldId!);
       loadMapData(worldInfo!).then((newMap) => {
         console.log(newMap);
         worldMap = newMap!;
@@ -151,9 +150,8 @@ export async function connectToGame(worldMap?: WorldMap): Promise<GameNetwork> {
     const callbacks = Callbacks.get(room);
     callbacks.onAdd("players", () => {
       if (room.state.players.has(room.sessionId)) {
-
-        let worldId = room.state.players.get(room.sessionId)?.worldId;
-        let worldInfo = room.state.worlds.get(worldId!);
+        const worldId = room.state.players.get(room.sessionId)?.worldId;
+        const worldInfo = room.state.worlds.get(worldId!);
         loadMapData(worldInfo!).then((newMap) => {
           console.log(newMap);
           worldMap = newMap!;

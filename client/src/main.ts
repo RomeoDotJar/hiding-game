@@ -20,12 +20,10 @@ import {
 import { connectToGame, GameNetwork } from "./network";
 import { DebugUI } from "./ui/DebugUI.js";
 import { getMoveX, getMoveY, isInteractKeyPressed } from "./input.js";
-import { Callbacks, Room } from "@colyseus/sdk";
+import { Callbacks } from "@colyseus/sdk";
 import { PROXY_URL } from "./shared/constants.js";
-import { MyRoomState, Player, WorldInfo } from "./shared/schema/MyRoomState.js";
-import { TiledMap } from "./shared/world/TiledMap.js";
+import { Player, WorldInfo } from "./shared/schema/MyRoomState.js";
 import { WorldMap } from "./shared/world/WorldMap.js";
-import { generateGameBoard } from "./shared/world/generateTest.js";
 import { loadMapData } from "./shared/world/load.js";
 
 const debugUI = new DebugUI();
@@ -51,20 +49,20 @@ async function updateUptime() {
 let lastKnownWorldId = "";
 let worldMap: WorldMap;
 
-let cameraContainer: Container = new Container();
+const cameraContainer: Container = new Container();
 cameraContainer.sortableChildren = true;
 
-let playerContainer: Container = new Container();
+const playerContainer: Container = new Container();
 playerContainer.sortableChildren = true;
-let debugContainer: Container = new Container();
+const debugContainer: Container = new Container();
 
 function initGame(app: Application, net: GameNetwork) {
   const { room, predict, input } = net;
 
-  let worldId = room.state.players.get(room.sessionId)?.worldId;
-  let worldInfo = room.state.worlds.get(worldId!);
+  const worldId = room.state.players.get(room.sessionId)?.worldId;
+  const worldInfo = room.state.worlds.get(worldId!);
   loadMapData(worldInfo!).then((newMap) => {
-    console.log(worldId,"loaded");
+    console.log(worldId, "loaded");
     worldMap = newMap!;
     loadFromWorldMap(app, worldMap);
   });
@@ -129,7 +127,7 @@ function initGame(app: Application, net: GameNetwork) {
     g.rect(-10, -10, 20, 20).fill(color);
     //app.stage.addChild(g);
 
-    debug_g.rect(-7.5, -7.5, 15, 15).fill(0xF1F111, 0.5);
+    debug_g.rect(-7.5, -7.5, 15, 15).fill(0xf1f111, 0.5);
     debug_g.zIndex -= 100;
     //app.stage.addChild(debug_g);
 
@@ -150,11 +148,10 @@ function initGame(app: Application, net: GameNetwork) {
           loadFromWorldInfo(app, worldInfo).then((world) => {
             if (world) {
               worldMap = world;
-            } 
+            }
           });
         }
       });
-
     } else {
       remotePlayers.set(sessionId, {
         renderedX: player.x,
@@ -214,16 +211,16 @@ function initGame(app: Application, net: GameNetwork) {
     false,
   );
 
-  app.ticker.add((ticker:Ticker) => {
+  app.ticker.add((ticker: Ticker) => {
     const now = performance.now();
     const steps = predict.tick(now);
-    
-    const deltaTime = Math.min(.1,ticker.deltaMS/1000);
+
+    const deltaTime = Math.min(0.1, ticker.deltaMS / 1000);
 
     // INPUT HANDLING
     for (let i = 0; i < steps; i++) {
-      input.data.moveX = getMoveX(selfPlayer.x,cameraContainer.x);
-      input.data.moveY = getMoveY(selfPlayer.y,cameraContainer.y);
+      input.data.moveX = getMoveX(selfPlayer.x, cameraContainer.x);
+      input.data.moveY = getMoveY(selfPlayer.y, cameraContainer.y);
       input.data.interact = isInteractKeyPressed();
       input.send();
     }
@@ -239,10 +236,22 @@ function initGame(app: Application, net: GameNetwork) {
         let deltaY = player.vy; //(player.y - storedRemotePlayer.lastServerY) / server_dt;
 
         if (worldMap) {
-          if (worldMap.checkCircleCollision(storedRemotePlayer.renderedX+deltaX*deltaTime, player.y, 2)) {
+          if (
+            worldMap.checkCircleCollision(
+              storedRemotePlayer.renderedX + deltaX * deltaTime,
+              player.y,
+              2,
+            )
+          ) {
             deltaX = 0;
           }
-          if (worldMap.checkCircleCollision(player.x, storedRemotePlayer.renderedY+deltaY*deltaTime, 2)) {
+          if (
+            worldMap.checkCircleCollision(
+              player.x,
+              storedRemotePlayer.renderedY + deltaY * deltaTime,
+              2,
+            )
+          ) {
             deltaY = 0;
           }
         }
@@ -251,18 +260,18 @@ function initGame(app: Application, net: GameNetwork) {
         // or a frame-rate independent exponential smoothing for better feel.
         const velSmoothFactor = 1.25;
         // Frame-rate independent lerp towards the extrapolated target
-        let renderSmoothFactor = .25;
+        const renderSmoothFactor = 0.25;
 
-        let predictionDeltaX = deltaX - storedRemotePlayer.predictedVelX
+        let predictionDeltaX = deltaX - storedRemotePlayer.predictedVelX;
         if (predictionDeltaX * storedRemotePlayer.predictedVelX < 0) {
-          predictionDeltaX *= Math.max(1, .1 / Math.max(.01,deltaTime));
+          predictionDeltaX *= Math.max(1, 0.1 / Math.max(0.01, deltaTime));
         }
         storedRemotePlayer.predictedVelX +=
           predictionDeltaX * velSmoothFactor * deltaTime;
-        
+
         let predictionDeltaY = deltaY - storedRemotePlayer.predictedVelY;
         if (predictionDeltaY * storedRemotePlayer.predictedVelY < 0) {
-          predictionDeltaY *= Math.max(1, .1 / Math.max(.01,deltaTime));
+          predictionDeltaY *= Math.max(1, 0.1 / Math.max(0.01, deltaTime));
         }
         storedRemotePlayer.predictedVelY +=
           predictionDeltaY * velSmoothFactor * deltaTime;
@@ -290,7 +299,10 @@ function initGame(app: Application, net: GameNetwork) {
         const remotePlayerUpstreamLatency = player.ping || 50; // Fallback to 50ms if rtt isn't set
         let totalPerceivedLatencySeconds =
           (remotePlayerUpstreamLatency + myPing) / 1000 / 2;
-        totalPerceivedLatencySeconds = Math.min(totalPerceivedLatencySeconds, 1);
+        totalPerceivedLatencySeconds = Math.min(
+          totalPerceivedLatencySeconds,
+          1,
+        );
 
         // Calculate where they should be RIGHT NOW (extrapolation)
         const targetX =
@@ -303,16 +315,16 @@ function initGame(app: Application, net: GameNetwork) {
         // ==========================================
         // C. Smoothly Render
         // ==========================================
-        
-        let renderDeltaX = targetX - storedRemotePlayer.renderedX;
-        let renderDeltaY = targetY - storedRemotePlayer.renderedY;
+
+        const renderDeltaX = targetX - storedRemotePlayer.renderedX;
+        const renderDeltaY = targetY - storedRemotePlayer.renderedY;
         //let renderDeltaDist = Math.sqrt(renderDeltaX*renderDeltaX + renderDeltaY*renderDeltaY);
 
-        let newRenderedX =
+        const newRenderedX =
           storedRemotePlayer.renderedX + renderDeltaX * renderSmoothFactor;
-        let newRenderedY =
+        const newRenderedY =
           storedRemotePlayer.renderedY + renderDeltaY * renderSmoothFactor;
-        
+
         storedRemotePlayer.renderedX = newRenderedX;
         storedRemotePlayer.renderedY = newRenderedY;
 
@@ -323,17 +335,33 @@ function initGame(app: Application, net: GameNetwork) {
         const debug_g = storedRemotePlayer.debugSprite;
         debug_g.x = player.x * TILEMAP_UPSCALE;
         debug_g.y = player.y * TILEMAP_UPSCALE;
-
       } else if (sessionId === room.sessionId && selfPlayer) {
         selfPlayer.x = predict.value(player, "x") * TILEMAP_UPSCALE;
         selfPlayer.y = predict.value(player, "y") * TILEMAP_UPSCALE;
 
-        selfPlayerDebug.x = (player.x + player.vx*player.ping/4000) * TILEMAP_UPSCALE;
-        selfPlayerDebug.y = (player.y + player.vy*player.ping/4000) * TILEMAP_UPSCALE;
+        selfPlayerDebug.x =
+          (player.x + (player.vx * player.ping) / 4000) * TILEMAP_UPSCALE;
+        selfPlayerDebug.y =
+          (player.y + (player.vy * player.ping) / 4000) * TILEMAP_UPSCALE;
 
-        debugUI.updateField('Position',Math.round(selfPlayer.x/10)*10+" "+Math.round(selfPlayer.y/10)*10);
-        debugUI.updateField('Velocity',Math.round(predict.value(player,"vx")*10)/10+" "+Math.round(predict.value(player,"vy")*10)/10);
-        debugUI.updateField('ServerPos',Math.round(selfPlayerDebug.x/10)*10+" "+Math.round(selfPlayerDebug.y/10)*10);
+        debugUI.updateField(
+          "Position",
+          Math.round(selfPlayer.x / 10) * 10 +
+            " " +
+            Math.round(selfPlayer.y / 10) * 10,
+        );
+        debugUI.updateField(
+          "Velocity",
+          Math.round(predict.value(player, "vx") * 10) / 10 +
+            " " +
+            Math.round(predict.value(player, "vy") * 10) / 10,
+        );
+        debugUI.updateField(
+          "ServerPos",
+          Math.round(selfPlayerDebug.x / 10) * 10 +
+            " " +
+            Math.round(selfPlayerDebug.y / 10) * 10,
+        );
       }
     }
 
@@ -345,8 +373,8 @@ function initGame(app: Application, net: GameNetwork) {
     if (worldMap === undefined || mouseX === undefined || mouseY === undefined)
       return;
 
-    let worldMouseX = mouseX - cameraContainer.x;
-    let worldMouseY = mouseY - cameraContainer.y;
+    const worldMouseX = mouseX - cameraContainer.x;
+    const worldMouseY = mouseY - cameraContainer.y;
 
     let ray = worldMap.raycast(
       selfPlayer.x / TILEMAP_UPSCALE,
@@ -371,7 +399,7 @@ function initGame(app: Application, net: GameNetwork) {
 }
 
 async function renderMapData(worldMap: WorldMap, cameraContainer: Container) {
-  let mapData = worldMap.mapData;
+  const mapData = worldMap.mapData;
 
   console.log(mapData);
 
@@ -386,7 +414,7 @@ async function renderMapData(worldMap: WorldMap, cameraContainer: Container) {
   const cols = Math.floor(baseTexture.width / mapData.tilewidth);
   const rows = Math.floor(baseTexture.height / mapData.tileheight);
 
-  console.log('Loading hub map 1/3');
+  console.log("Loading hub map 1/3");
 
   let gid = tilesetInfo.firstgid || 1;
   for (let row = 0; row < rows; row++) {
@@ -468,15 +496,14 @@ async function renderMapData(worldMap: WorldMap, cameraContainer: Container) {
 
 // TILEMAP INIT
 async function loadFromWorldInfo(app: Application, worldInfo: WorldInfo) {
-  let worldMap = await loadMapData(worldInfo);
-  if (!worldMap)
-    return;
+  const worldMap = await loadMapData(worldInfo);
+  if (!worldMap) return;
 
   return loadFromWorldMap(app, worldMap);
 }
 
 async function loadFromWorldMap(app: Application, hubWorld: WorldMap) {
-  let mapData = hubWorld.mapData;
+  const mapData = hubWorld.mapData;
 
   console.log("Map dimensions:", mapData.width, "x", mapData.height);
   console.log("Map data:", mapData);
@@ -484,16 +511,14 @@ async function loadFromWorldMap(app: Application, hubWorld: WorldMap) {
   cameraContainer.removeChildren();
   await renderMapData(hubWorld, cameraContainer);
 
-  console.log('Loading hub map 2/3');
+  console.log("Loading hub map 2/3");
 
   // Add the rendered map to your PixiJS stage (at index 0 so it stays behind entities)
   app.stage.addChild(cameraContainer);
 
   // Find the spawn area object
   const objectsLayer = mapData.layers.find((l) => l.name === "Objs");
-  const spawnArea = objectsLayer?.objects?.find(
-    (o) => o.type === "SpawnArea",
-  );
+  const spawnArea = objectsLayer?.objects?.find((o) => o.type === "SpawnArea");
 
   console.log("Spawn Area found at:", spawnArea?.x, spawnArea?.y);
 

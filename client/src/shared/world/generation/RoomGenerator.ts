@@ -48,7 +48,9 @@ export class RoomGenerator {
     this.roster = config.roomRoster;
     // ReservedOnly templates are available for capability reservations, but
     // are excluded from ordinary weighted room selection.
-    this.ordinaryRoster = this.roster.filter((entry) => entry.ReservedOnly !== true);
+    this.ordinaryRoster = this.roster.filter(
+      (entry) => entry.ReservedOnly !== true,
+    );
 
     this.occupied = new Uint8Array(this.width * this.height);
 
@@ -89,7 +91,7 @@ export class RoomGenerator {
       if (!room) {
         throw new Error(
           `RoomGenerator could not reserve a room with capability '${capability}'. ` +
-          `Check its template dimensions, map size, and minRoomSpacing (${this.minRoomSpacing}).`,
+            `Check its template dimensions, map size, and minRoomSpacing (${this.minRoomSpacing}).`,
         );
       }
 
@@ -100,7 +102,7 @@ export class RoomGenerator {
     if (rooms.length < this.roomsCount && this.ordinaryRoster.length === 0) {
       throw new Error(
         "RoomGenerator: all RoomRoster templates are ReservedOnly, but ordinary room slots remain. " +
-        "Add at least one template without ReservedOnly: true, or increase the reserved room counts.",
+          "Add at least one template without ReservedOnly: true, or increase the reserved room counts.",
       );
     }
 
@@ -110,9 +112,9 @@ export class RoomGenerator {
       if (!room) {
         throw new Error(
           `RoomGenerator could place only ${rooms.length} of ${this.roomsCount} ` +
-          `requested rooms on a ${this.width}x${this.height} map. ` +
-          `Check room dimensions, roster weights, and minRoomSpacing ` +
-          `(${this.minRoomSpacing}).`,
+            `requested rooms on a ${this.width}x${this.height} map. ` +
+            `Check room dimensions, roster weights, and minRoomSpacing ` +
+            `(${this.minRoomSpacing}).`,
         );
       }
 
@@ -148,7 +150,7 @@ export class RoomGenerator {
     if (slots.length > this.roomsCount) {
       throw new Error(
         `RoomGenerator requires at least ${slots.length} rooms to reserve ` +
-        `Ritual and spawn candidates, but roomsCount is ${this.roomsCount}.`,
+          `Ritual and spawn candidates, but roomsCount is ${this.roomsCount}.`,
       );
     }
 
@@ -174,7 +176,11 @@ export class RoomGenerator {
     templatePool: readonly RoomRosterEntry[],
     placedRooms: GeneratedRoom[],
   ): GeneratedRoom | undefined {
-    for (let attempt = 0; attempt < this.maxTemplateAttemptsPerRoom; attempt++) {
+    for (
+      let attempt = 0;
+      attempt < this.maxTemplateAttemptsPerRoom;
+      attempt++
+    ) {
       const template = this.pickWeightedTemplate(templatePool);
       const shape = this.createShape(template.Generation);
       if (!shape) continue;
@@ -222,11 +228,10 @@ export class RoomGenerator {
     if (!Number.isInteger(this.roomsCount) || this.roomsCount < 1) {
       throw new Error("RoomGenerator: roomsCount must be a positive integer.");
     }
-    if (
-      !Number.isInteger(this.minRoomSpacing) ||
-      this.minRoomSpacing < 0
-    ) {
-      throw new Error("RoomGenerator: minRoomSpacing must be a non-negative integer.");
+    if (!Number.isInteger(this.minRoomSpacing) || this.minRoomSpacing < 0) {
+      throw new Error(
+        "RoomGenerator: minRoomSpacing must be a non-negative integer.",
+      );
     }
     if (this.roster.length === 0) {
       throw new Error("RoomGenerator: RoomRoster cannot be empty.");
@@ -237,10 +242,14 @@ export class RoomGenerator {
 
     for (const entry of this.roster) {
       if (!entry.Room.trim()) {
-        throw new Error("RoomGenerator: room template identifiers cannot be empty.");
+        throw new Error(
+          "RoomGenerator: room template identifiers cannot be empty.",
+        );
       }
       if (ids.has(entry.Room)) {
-        throw new Error(`RoomGenerator: duplicate room template '${entry.Room}'.`);
+        throw new Error(
+          `RoomGenerator: duplicate room template '${entry.Room}'.`,
+        );
       }
       ids.add(entry.Room);
 
@@ -249,7 +258,10 @@ export class RoomGenerator {
           `RoomGenerator: '${entry.Room}' must have a finite Weight greater than zero.`,
         );
       }
-      if (entry.ReservedOnly !== undefined && typeof entry.ReservedOnly !== "boolean") {
+      if (
+        entry.ReservedOnly !== undefined &&
+        typeof entry.ReservedOnly !== "boolean"
+      ) {
         throw new Error(
           `RoomGenerator: '${entry.Room}'.ReservedOnly must be a boolean when provided.`,
         );
@@ -260,11 +272,18 @@ export class RoomGenerator {
     }
 
     if (!Number.isFinite(totalWeight) || totalWeight <= 0) {
-      throw new Error("RoomGenerator: RoomRoster total weight must be positive and finite.");
+      throw new Error(
+        "RoomGenerator: RoomRoster total weight must be positive and finite.",
+      );
     }
 
-    if (this.width <= this.minMapMargin * 2 || this.height <= this.minMapMargin * 2) {
-      throw new Error("RoomGenerator: map is too small for the configured outer margin.");
+    if (
+      this.width <= this.minMapMargin * 2 ||
+      this.height <= this.minMapMargin * 2
+    ) {
+      throw new Error(
+        "RoomGenerator: map is too small for the configured outer margin.",
+      );
     }
   }
 
@@ -272,12 +291,13 @@ export class RoomGenerator {
     roomName: string,
     rules: RoomGenerationRules,
   ): void {
-    const validateRange = (
-      min: number,
-      max: number,
-      label: string,
-    ): void => {
-      if (!Number.isInteger(min) || !Number.isInteger(max) || min < 1 || max < min) {
+    const validateRange = (min: number, max: number, label: string): void => {
+      if (
+        !Number.isInteger(min) ||
+        !Number.isInteger(max) ||
+        min < 1 ||
+        max < min
+      ) {
         throw new Error(
           `RoomGenerator: invalid ${label} range for '${roomName}'.`,
         );
@@ -310,7 +330,9 @@ export class RoomGenerator {
         minThickness < 1 ||
         maxThickness < minThickness
       ) {
-        throw new Error(`RoomGenerator: invalid arm thickness range for '${roomName}'.`);
+        throw new Error(
+          `RoomGenerator: invalid arm thickness range for '${roomName}'.`,
+        );
       }
     }
   }
@@ -336,7 +358,8 @@ export class RoomGenerator {
 
   private createShape(
     rules: RoomGenerationRules,
-  ): { width: number; height: number; localFootprint: TilePoint[] } | undefined {
+  ):
+    { width: number; height: number; localFootprint: TilePoint[] } | undefined {
     const dimensions = this.sampleDimensions(rules);
     if (!dimensions) return undefined;
 
@@ -403,17 +426,9 @@ export class RoomGenerator {
       const feasibleMaxHeight = Math.min(maxHeight, maxWidth);
       if (feasibleMaxHeight < minHeight) return undefined;
 
-      const height = randomIntInclusive(
-        this.rng,
-        minHeight,
-        feasibleMaxHeight,
-      );
+      const height = randomIntInclusive(this.rng, minHeight, feasibleMaxHeight);
       const feasibleMinWidth = Math.max(minWidth, height);
-      const width = randomIntInclusive(
-        this.rng,
-        feasibleMinWidth,
-        maxWidth,
-      );
+      const width = randomIntInclusive(this.rng, feasibleMinWidth, maxWidth);
       return { width, height };
     }
 
@@ -421,17 +436,9 @@ export class RoomGenerator {
       const feasibleMaxWidth = Math.min(maxWidth, maxHeight);
       if (feasibleMaxWidth < minWidth) return undefined;
 
-      const width = randomIntInclusive(
-        this.rng,
-        minWidth,
-        feasibleMaxWidth,
-      );
+      const width = randomIntInclusive(this.rng, minWidth, feasibleMaxWidth);
       const feasibleMinHeight = Math.max(minHeight, width);
-      const height = randomIntInclusive(
-        this.rng,
-        feasibleMinHeight,
-        maxHeight,
-      );
+      const height = randomIntInclusive(this.rng, feasibleMinHeight, maxHeight);
       return { width, height };
     }
 
@@ -441,10 +448,7 @@ export class RoomGenerator {
     };
   }
 
-  private createRectangleFootprint(
-    width: number,
-    height: number,
-  ): TilePoint[] {
+  private createRectangleFootprint(width: number, height: number): TilePoint[] {
     const footprint: TilePoint[] = [];
 
     for (let y = 0; y < height; y++) {
@@ -584,10 +588,7 @@ export class RoomGenerator {
     for (const room of placedRooms) {
       const roomCenterX = room.bounds.x + (room.bounds.width - 1) / 2;
       const roomCenterY = room.bounds.y + (room.bounds.height - 1) / 2;
-      const distance = Math.hypot(
-        centerX - roomCenterX,
-        centerY - roomCenterY,
-      );
+      const distance = Math.hypot(centerX - roomCenterX, centerY - roomCenterY);
       nearestDistance = Math.min(nearestDistance, distance);
     }
 
@@ -595,11 +596,7 @@ export class RoomGenerator {
   }
 }
 
-function randomIntInclusive(
-  rng: PRNG,
-  min: number,
-  max: number,
-): number {
+function randomIntInclusive(rng: PRNG, min: number, max: number): number {
   if (max < min) {
     throw new Error(`Invalid random integer range: ${min}..${max}.`);
   }

@@ -1,13 +1,7 @@
 import { PRNG } from "../../PRNG.js";
 import type { MapGenerationConfig } from "./config/MapGenerationConfig.js";
-import type {
-  CardinalDirection,
-  TilePoint,
-} from "./types/MapGeometry.js";
-import type {
-  DoorwayAnchor,
-  RoomConnection,
-} from "./types/ConnectionTypes.js";
+import type { CardinalDirection, TilePoint } from "./types/MapGeometry.js";
+import type { DoorwayAnchor, RoomConnection } from "./types/ConnectionTypes.js";
 import type { GeneratedRoom } from "./types/RoomTypes.js";
 
 /**
@@ -146,7 +140,7 @@ export class ConnectivityGenerator {
 
     throw new Error(
       `ConnectivityGenerator: unable to route a connected room graph after ${MAX_ROUTING_ATTEMPTS} deterministic attempts. ` +
-      (lastRoutingError?.message ?? "No routing details available."),
+        (lastRoutingError?.message ?? "No routing details available."),
     );
   }
 
@@ -177,8 +171,8 @@ export class ConnectivityGenerator {
       if (candidates.length === 0) {
         throw new Error(
           `ConnectivityGenerator: room ${room.id} (${room.templateId}) has no ` +
-          `doorway span wide enough for a ${this.corridorWidth}-tile corridor. ` +
-          "Reduce corridorWidth or use a larger room template.",
+            `doorway span wide enough for a ${this.corridorWidth}-tile corridor. ` +
+            "Reduce corridorWidth or use a larger room template.",
         );
       }
       doorwaysByRoom.set(room.id, candidates);
@@ -230,11 +224,11 @@ export class ConnectivityGenerator {
       const components = disjointSet.getComponents();
       throw new RoutingAttemptError(
         "A connected room graph could not be carved. " +
-        `Connected ${disjointSet.componentCount} of ${rooms.length} components. ` +
-        `corridorWidth=${this.corridorWidth}, map=${this.width}x${this.height}. ` +
-        `Remaining components: ${components.map((component) => `[${component.join(", ")}]`).join(" ")}. ` +
-        "Try increasing map dimensions, reducing roomsCount or room sizes, " +
-        "reducing minRoomSpacing, or reducing corridorWidth.",
+          `Connected ${disjointSet.componentCount} of ${rooms.length} components. ` +
+          `corridorWidth=${this.corridorWidth}, map=${this.width}x${this.height}. ` +
+          `Remaining components: ${components.map((component) => `[${component.join(", ")}]`).join(" ")}. ` +
+          "Try increasing map dimensions, reducing roomsCount or room sizes, " +
+          "reducing minRoomSpacing, or reducing corridorWidth.",
       );
     }
 
@@ -355,8 +349,8 @@ export class ConnectivityGenerator {
         ) {
           throw new Error(
             `ConnectivityGenerator: room ${room.id} contains an out-of-bounds ` +
-            `or non-integer footprint tile (${point.x}, ${point.y}). ` +
-            "Rooms must leave the outermost map border clear for walls.",
+              `or non-integer footprint tile (${point.x}, ${point.y}). ` +
+              "Rooms must leave the outermost map border clear for walls.",
           );
         }
 
@@ -390,7 +384,11 @@ export class ConnectivityGenerator {
     const seen = new Set<string>();
 
     for (const roomTile of room.footprint) {
-      for (let directionIndex = 0; directionIndex < DIRECTIONS.length; directionIndex++) {
+      for (
+        let directionIndex = 0;
+        directionIndex < DIRECTIONS.length;
+        directionIndex++
+      ) {
         const direction = DIRECTIONS[directionIndex];
         const cross = this.getCrossAxis(directionIndex);
         let validSpan = true;
@@ -504,21 +502,14 @@ export class ConnectivityGenerator {
 
     pairs.sort(
       (left, right) =>
-        left.distance - right.distance ||
-        left.tieBreaker - right.tieBreaker,
+        left.distance - right.distance || left.tieBreaker - right.tieBreaker,
     );
 
-    const attemptCount = Math.min(
-      pairs.length,
-      MAX_DOORWAY_PAIRS_PER_EDGE,
-    );
+    const attemptCount = Math.min(pairs.length, MAX_DOORWAY_PAIRS_PER_EDGE);
 
     for (let i = 0; i < attemptCount; i++) {
       const pair = pairs[i];
-      const path = this.findWidthAwarePath(
-        pair.from,
-        pair.to,
-      );
+      const path = this.findWidthAwarePath(pair.from, pair.to);
       if (!path) continue;
 
       const corridorFootprint = this.buildCorridorFootprint(
@@ -556,12 +547,11 @@ export class ConnectivityGenerator {
       from.outsidePosition.x,
       from.outsidePosition.y,
     );
-    const goalIndex = this.index(
-      to.outsidePosition.x,
-      to.outsidePosition.y,
-    );
+    const goalIndex = this.index(to.outsidePosition.x, to.outsidePosition.y);
     const startDirection = directionIndex(from.orientation);
-    const requiredFinalDirection = oppositeDirection(directionIndex(to.orientation));
+    const requiredFinalDirection = oppositeDirection(
+      directionIndex(to.orientation),
+    );
 
     // Two rooms separated by a single free tile can connect directly when the
     // configured corridor is one tile wide and their doors face one another.
@@ -594,8 +584,8 @@ export class ConnectivityGenerator {
     queue[tail++] = startState;
 
     const rotation = this.rng.nextInt(0, DIRECTIONS.length);
-    const directionOrder = DIRECTIONS.map((_, index) =>
-      (index + rotation) % DIRECTIONS.length,
+    const directionOrder = DIRECTIONS.map(
+      (_, index) => (index + rotation) % DIRECTIONS.length,
     );
 
     let finalState = -1;
@@ -631,7 +621,10 @@ export class ConnectivityGenerator {
         if (!this.isRoutingInterior(next.x, next.y)) continue;
 
         const nextCell = this.index(next.x, next.y);
-        if (nextCell === goalIndex && nextDirection !== requiredFinalDirection) {
+        if (
+          nextCell === goalIndex &&
+          nextDirection !== requiredFinalDirection
+        ) {
           continue;
         }
 
@@ -937,10 +930,14 @@ class DisjointSet {
 
 function directionIndex(direction: CardinalDirection): number {
   switch (direction) {
-    case "EAST": return 0;
-    case "SOUTH": return 1;
-    case "WEST": return 2;
-    case "NORTH": return 3;
+    case "EAST":
+      return 0;
+    case "SOUTH":
+      return 1;
+    case "WEST":
+      return 2;
+    case "NORTH":
+      return 3;
   }
 }
 

@@ -1,4 +1,3 @@
-
 import type { RoomRoster } from "../types/RoomTypes.js";
 
 export const DEFAULT_ROOM_ROSTER: RoomRoster = [
@@ -37,10 +36,7 @@ export const DEFAULT_ROOM_ROSTER: RoomRoster = [
       orientation: "ANY",
     },
 
-    Capabilities: [
-      "CHEST_ELIGIBLE",
-      "CLOSET_ELIGIBLE",
-    ],
+    Capabilities: ["CHEST_ELIGIBLE", "CLOSET_ELIGIBLE"],
   },
 
   {
@@ -100,10 +96,8 @@ export const DEFAULT_ROOM_ROSTER: RoomRoster = [
       maxHeight: 16,
     },
 
-    Capabilities: [
-      "RITUAL_ELIGIBLE",
-    ],
+    Capabilities: ["RITUAL_ELIGIBLE"],
 
-    ReservedOnly: true
+    ReservedOnly: true,
   },
 ];

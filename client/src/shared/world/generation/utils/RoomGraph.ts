@@ -195,7 +195,8 @@ export class RoomGraph {
     const previous = new Map<number, PreviousStep>();
     const unvisited = new Set<number>(this.roomsById.keys());
 
-    for (const roomId of unvisited) distances.set(roomId, Number.POSITIVE_INFINITY);
+    for (const roomId of unvisited)
+      distances.set(roomId, Number.POSITIVE_INFINITY);
     distances.set(fromRoomId, 0);
 
     while (unvisited.size > 0) {
@@ -220,7 +221,8 @@ export class RoomGraph {
         if (
           candidateDistance < knownDistance ||
           (candidateDistance === knownDistance &&
-            connection.id < (previousStep?.connection.id ?? Number.POSITIVE_INFINITY))
+            connection.id <
+              (previousStep?.connection.id ?? Number.POSITIVE_INFINITY))
         ) {
           distances.set(neighbor, candidateDistance);
           previous.set(neighbor, { roomId: current, connection });
@@ -256,12 +258,11 @@ export class RoomGraph {
   }
 
   /** Returns the lowest corridor-length path cost, or Infinity if disconnected. */
-  public getShortestPathLength(
-    fromRoomId: number,
-    toRoomId: number,
-  ): number {
-    return this.findLowestCostPath(fromRoomId, toRoomId)?.distance
-      ?? Number.POSITIVE_INFINITY;
+  public getShortestPathLength(fromRoomId: number, toRoomId: number): number {
+    return (
+      this.findLowestCostPath(fromRoomId, toRoomId)?.distance ??
+      Number.POSITIVE_INFINITY
+    );
   }
 
   /** Returns all connected components as arrays of sorted room IDs. */
@@ -360,8 +361,12 @@ export class RoomGraph {
       this.incidentByRoom.get(connection.fromRoomId)!.push(connection);
       this.incidentByRoom.get(connection.toRoomId)!.push(connection);
 
-      this.neighborsByRoom.get(connection.fromRoomId)!.push(connection.toRoomId);
-      this.neighborsByRoom.get(connection.toRoomId)!.push(connection.fromRoomId);
+      this.neighborsByRoom
+        .get(connection.fromRoomId)!
+        .push(connection.toRoomId);
+      this.neighborsByRoom
+        .get(connection.toRoomId)!
+        .push(connection.fromRoomId);
     }
   }
 
@@ -372,7 +377,10 @@ export class RoomGraph {
       );
     }
 
-    if (!Array.isArray(connection.corridorPath) || connection.corridorPath.length === 0) {
+    if (
+      !Array.isArray(connection.corridorPath) ||
+      connection.corridorPath.length === 0
+    ) {
       throw new Error(
         `RoomGraph: connection ${connection.id} has an empty corridorPath.`,
       );
@@ -393,7 +401,7 @@ export class RoomGraph {
         if (manhattanDelta !== 1) {
           throw new Error(
             `RoomGraph: connection ${connection.id} contains a non-cardinal or discontinuous ` +
-            `corridorPath step at index ${i}.`,
+              `corridorPath step at index ${i}.`,
           );
         }
       }
@@ -435,7 +443,8 @@ export class RoomGraph {
       if (
         distance < bestDistance ||
         (distance === bestDistance &&
-          bestRoom !== undefined && roomId < bestRoom)
+          bestRoom !== undefined &&
+          roomId < bestRoom)
       ) {
         bestRoom = roomId;
         bestDistance = distance;
@@ -452,10 +461,7 @@ export class RoomGraph {
   }
 }
 
-function otherEndpoint(
-  connection: RoomConnection,
-  roomId: number,
-): number {
+function otherEndpoint(connection: RoomConnection, roomId: number): number {
   if (connection.fromRoomId === roomId) return connection.toRoomId;
   if (connection.toRoomId === roomId) return connection.fromRoomId;
   throw new Error(

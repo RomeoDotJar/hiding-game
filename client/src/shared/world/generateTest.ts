@@ -44,7 +44,7 @@ const DEFAULT_OPTIONS: Required<MapGenerationOptions> = {
   // Preserve the previous 1–2 tile thickness range, with thin walls favored.
   minWallThickness: 2,
   maxWallThickness: 3,
-  
+
   straightWallRatio: 0.5,
   decorate: true,
 };
@@ -74,10 +74,14 @@ export function generateGameBoard(
     height: options.height ?? DEFAULT_OPTIONS.height,
     wallDensity: options.wallDensity ?? DEFAULT_OPTIONS.wallDensity,
     minPathwayWidth: options.minPathwayWidth ?? DEFAULT_OPTIONS.minPathwayWidth,
-    wallAverageLength: options.wallAverageLength ?? DEFAULT_OPTIONS.wallAverageLength,
-    minWallThickness: options.minWallThickness ?? DEFAULT_OPTIONS.minWallThickness,
-    maxWallThickness: options.maxWallThickness ?? DEFAULT_OPTIONS.maxWallThickness,
-    straightWallRatio: options.straightWallRatio ?? DEFAULT_OPTIONS.straightWallRatio,
+    wallAverageLength:
+      options.wallAverageLength ?? DEFAULT_OPTIONS.wallAverageLength,
+    minWallThickness:
+      options.minWallThickness ?? DEFAULT_OPTIONS.minWallThickness,
+    maxWallThickness:
+      options.maxWallThickness ?? DEFAULT_OPTIONS.maxWallThickness,
+    straightWallRatio:
+      options.straightWallRatio ?? DEFAULT_OPTIONS.straightWallRatio,
     decorate: options.decorate ?? DEFAULT_OPTIONS.decorate,
   };
   const width = config.width;
@@ -89,25 +93,44 @@ export function generateGameBoard(
     width < 14 ||
     height < 12
   ) {
-    throw new Error("Map dimensions must be integers (width >= 14, height >= 12).");
+    throw new Error(
+      "Map dimensions must be integers (width >= 14, height >= 12).",
+    );
   }
   if (!Number.isFinite(seed)) {
     throw new Error("Seed must be a finite number.");
   }
-  if (!Number.isFinite(config.wallDensity) || config.wallDensity < 0 || config.wallDensity > 1) {
+  if (
+    !Number.isFinite(config.wallDensity) ||
+    config.wallDensity < 0 ||
+    config.wallDensity > 1
+  ) {
     throw new Error("wallDensity must be a number between 0 and 1.");
   }
   if (!Number.isInteger(config.minPathwayWidth) || config.minPathwayWidth < 1) {
     throw new Error("minPathwayWidth must be a positive integer.");
   }
-  if (!Number.isFinite(config.wallAverageLength) || config.wallAverageLength < 3) {
-    throw new Error("wallAverageLength must be a finite number greater than or equal to 3.");
+  if (
+    !Number.isFinite(config.wallAverageLength) ||
+    config.wallAverageLength < 3
+  ) {
+    throw new Error(
+      "wallAverageLength must be a finite number greater than or equal to 3.",
+    );
   }
-  if (!Number.isInteger(config.minWallThickness) || config.minWallThickness < 1) {
+  if (
+    !Number.isInteger(config.minWallThickness) ||
+    config.minWallThickness < 1
+  ) {
     throw new Error("minWallThickness must be a positive integer.");
   }
-  if (!Number.isInteger(config.maxWallThickness) || config.maxWallThickness < config.minWallThickness) {
-    throw new Error("maxWallThickness must be an integer greater than or equal to minWallThickness.");
+  if (
+    !Number.isInteger(config.maxWallThickness) ||
+    config.maxWallThickness < config.minWallThickness
+  ) {
+    throw new Error(
+      "maxWallThickness must be an integer greater than or equal to minWallThickness.",
+    );
   }
   if (
     !Number.isFinite(config.straightWallRatio) ||
@@ -182,7 +205,11 @@ export function generateGameBoard(
     if (maxAvailable < minLength) return maxAvailable;
     const variation = (rng.next() + rng.next()) / 2;
     const factor = 0.6 + variation * 0.8;
-    return clamp(Math.round(config.wallAverageLength * factor), minLength, maxAvailable);
+    return clamp(
+      Math.round(config.wallAverageLength * factor),
+      minLength,
+      maxAvailable,
+    );
   };
 
   /**
@@ -193,7 +220,10 @@ export function generateGameBoard(
   const sampleWallThickness = (): number => {
     const range = config.maxWallThickness - config.minWallThickness + 1;
     const biasedRoll = Math.pow(rng.next(), 2.5);
-    return config.minWallThickness + Math.min(range - 1, Math.floor(biasedRoll * range));
+    return (
+      config.minWallThickness +
+      Math.min(range - 1, Math.floor(biasedRoll * range))
+    );
   };
 
   /** Adds unique points to a candidate while preserving their path order. */
@@ -228,16 +258,22 @@ export function generateGameBoard(
 
     if (!makeLShape) {
       const horizontal = rng.next() < 0.5;
-      const length = sampleWallLength(horizontal ? interiorWidth : interiorHeight);
+      const length = sampleWallLength(
+        horizontal ? interiorWidth : interiorHeight,
+      );
       const thicknessDirection: -1 | 1 = rng.next() < 0.5 ? -1 : 1;
       const collector = createPointCollector();
 
       if (horizontal) {
         const startX = randomInt(rng, interiorMinX, interiorMaxX - length + 1);
         const minY =
-          thicknessDirection === 1 ? interiorMinY : interiorMinY + thickness - 1;
+          thicknessDirection === 1
+            ? interiorMinY
+            : interiorMinY + thickness - 1;
         const maxY =
-          thicknessDirection === 1 ? interiorMaxY - thickness + 1 : interiorMaxY;
+          thicknessDirection === 1
+            ? interiorMaxY - thickness + 1
+            : interiorMaxY;
         const baseY = randomInt(rng, minY, maxY);
 
         for (let step = 0; step < length; step++) {
@@ -248,9 +284,13 @@ export function generateGameBoard(
       } else {
         const startY = randomInt(rng, interiorMinY, interiorMaxY - length + 1);
         const minX =
-          thicknessDirection === 1 ? interiorMinX : interiorMinX + thickness - 1;
+          thicknessDirection === 1
+            ? interiorMinX
+            : interiorMinX + thickness - 1;
         const maxX =
-          thicknessDirection === 1 ? interiorMaxX - thickness + 1 : interiorMaxX;
+          thicknessDirection === 1
+            ? interiorMaxX - thickness + 1
+            : interiorMaxX;
         const baseX = randomInt(rng, minX, maxX);
 
         for (let step = 0; step < length; step++) {
@@ -277,11 +317,17 @@ export function generateGameBoard(
 
     if (verticalLength > interiorHeight) {
       verticalLength = interiorHeight;
-      horizontalLength = Math.min(interiorWidth, totalLength - verticalLength + 1);
+      horizontalLength = Math.min(
+        interiorWidth,
+        totalLength - verticalLength + 1,
+      );
     }
     if (horizontalLength > interiorWidth) {
       horizontalLength = interiorWidth;
-      verticalLength = Math.min(interiorHeight, totalLength - horizontalLength + 1);
+      verticalLength = Math.min(
+        interiorHeight,
+        totalLength - horizontalLength + 1,
+      );
     }
     if (horizontalLength < 2 || verticalLength < 2) return [];
 
@@ -294,9 +340,13 @@ export function generateGameBoard(
     // The horizontal arm controls the joint's X range; the vertical arm's
     // thickness also consumes space along X. Both constraints are combined.
     let minJointX =
-      horizontalDirection === 1 ? interiorMinX : interiorMinX + horizontalLength - 1;
+      horizontalDirection === 1
+        ? interiorMinX
+        : interiorMinX + horizontalLength - 1;
     let maxJointX =
-      horizontalDirection === 1 ? interiorMaxX - horizontalLength + 1 : interiorMaxX;
+      horizontalDirection === 1
+        ? interiorMaxX - horizontalLength + 1
+        : interiorMaxX;
     if (verticalThicknessDirection === 1) {
       maxJointX = Math.min(maxJointX, interiorMaxX - thickness + 1);
     } else {
@@ -306,9 +356,13 @@ export function generateGameBoard(
     // The vertical arm controls the joint's Y range; the horizontal arm's
     // thickness also consumes space along Y.
     let minJointY =
-      verticalDirection === 1 ? interiorMinY : interiorMinY + verticalLength - 1;
+      verticalDirection === 1
+        ? interiorMinY
+        : interiorMinY + verticalLength - 1;
     let maxJointY =
-      verticalDirection === 1 ? interiorMaxY - verticalLength + 1 : interiorMaxY;
+      verticalDirection === 1
+        ? interiorMaxY - verticalLength + 1
+        : interiorMaxY;
     if (horizontalThicknessDirection === 1) {
       maxJointY = Math.min(maxJointY, interiorMaxY - thickness + 1);
     } else {
@@ -506,7 +560,8 @@ export function generateGameBoard(
       const east = hasWall(x + 1, y);
       const south = hasWall(x, y + 1);
       const west = hasWall(x - 1, y);
-      const neighbors = Number(north) + Number(east) + Number(south) + Number(west);
+      const neighbors =
+        Number(north) + Number(east) + Number(south) + Number(west);
 
       let tileId: number;
       if (north && south && !east && !west) {
@@ -545,7 +600,8 @@ export function generateGameBoard(
   // floor, wall and walloutline layers are generated regardless of this flag.
   if (config.decorate) {
     const paintFloorCell = (x: number, y: number, tileId: number): void => {
-      if (!inBounds(x, y) || wallCells[index(x, y)] || spawnClearance(x, y)) return;
+      if (!inBounds(x, y) || wallCells[index(x, y)] || spawnClearance(x, y))
+        return;
       floor[index(x, y)] = gid(tileId);
     };
 
@@ -578,7 +634,9 @@ export function generateGameBoard(
     const horizontalMotif = [27, 28, 28, 29];
     const motifY = 2;
     const motifX = Math.max(2, width - 14);
-    horizontalMotif.forEach((tileId, offset) => paintFloorCell(motifX + offset, motifY, tileId));
+    horizontalMotif.forEach((tileId, offset) =>
+      paintFloorCell(motifX + offset, motifY, tileId),
+    );
 
     const verticalMotifX = Math.max(2, width - 9);
     const verticalMotifY = clamp(Math.round(height * 0.42), 2, height - 6);
@@ -594,7 +652,12 @@ export function generateGameBoard(
     );
 
     // Ceiling overlays use the Hub's translucent ceiling tile (local tile ID 30).
-    const addCeilingRun = (x: number, y: number, runWidth: number, runHeight: number): void => {
+    const addCeilingRun = (
+      x: number,
+      y: number,
+      runWidth: number,
+      runHeight: number,
+    ): void => {
       for (let py = 0; py < runHeight; py++) {
         for (let px = 0; px < runWidth; px++) {
           const cx = x + px;
@@ -607,10 +670,20 @@ export function generateGameBoard(
     };
 
     addCeilingRun(3, 4, 1, 1);
-    addCeilingRun(clamp(Math.round(width * 0.30), 3, width - 6), 4, 3, 1);
-    addCeilingRun(width - 5, clamp(Math.round(height * 0.45), 4, height - 5), 1, 3);
+    addCeilingRun(clamp(Math.round(width * 0.3), 3, width - 6), 4, 3, 1);
+    addCeilingRun(
+      width - 5,
+      clamp(Math.round(height * 0.45), 4, height - 5),
+      1,
+      3,
+    );
     if (rng.next() < 0.7) {
-      addCeilingRun(clamp(Math.round(width * 0.54), 3, width - 6), height - 6, 3, 1);
+      addCeilingRun(
+        clamp(Math.round(width * 0.54), 3, width - 6),
+        height - 6,
+        3,
+        1,
+      );
     }
   }
 
@@ -643,7 +716,9 @@ export function generateGameBoard(
     }
   }
 
-  const backgroundProperty = [{ name: "Background", type: "bool", value: true }];
+  const backgroundProperty = [
+    { name: "Background", type: "bool", value: true },
+  ];
 
   const map = {
     compressionlevel: -1,

@@ -1,4 +1,4 @@
-import { MapSchema, schema, Schema, t, type, type SchemaType } from "@colyseus/schema";
+import { MapSchema, Schema, type } from "@colyseus/schema";
 
 /**
  * One input frame, consumed by `Room.defineInput()`. Flat primitives only, and
@@ -21,14 +21,14 @@ export class Player extends Schema {
   @type("boolean") isInteracting: boolean = false;
 
   @type("string") name: string = "Unknown";
-  
+
   @type("string") worldId: string = "Hub";
 }
 
 export class WorldInfo extends Schema {
-  @type("string") type: string = "Hub";     // "Hub" | "GameBoard"
-  @type("string") path: string = "";         // For static GameBoards
-  @type("number") seed: number = 0;         // For procedural GameBoards
+  @type("string") type: string = "Hub"; // "Hub" | "GameBoard"
+  @type("string") path: string = ""; // For static GameBoards
+  @type("number") seed: number = 0; // For procedural GameBoards
   @type("number") width: number = 30;
   @type("number") height: number = 30;
 }
@@ -36,7 +36,7 @@ export class WorldInfo extends Schema {
 export class MyRoomState extends Schema {
   @type({ map: Player }) players = new MapSchema<Player>();
   @type({ map: WorldInfo }) worlds = new MapSchema<WorldInfo>();
-  
+
   @type("string") phase: GamePhase = GamePhase.Intermission;
   @type("number") phaseTimer: number = 0;
 }
@@ -45,5 +45,5 @@ export enum GamePhase {
   Intermission = "intermission",
   Starting = "starting",
   Playing = "playing",
-  Ended = "ended"
+  Ended = "ended",
 }

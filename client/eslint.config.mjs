@@ -10,6 +10,9 @@ export default tseslint.config(
       ...tseslint.configs.recommended,
       prettier,
     ],
+    ignores: [
+      "**/*.tsx"
+    ],
     files: ["**/*.{ts,tsx}"],
     languageOptions: {
       ecmaVersion: "latest",

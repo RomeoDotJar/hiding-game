@@ -1,5 +1,3 @@
-import { Graphics } from "pixi.js";
-
 const TOUCH_FREE_SPACE = 30;
 const keys: Record<string, boolean> = {};
 
@@ -15,13 +13,12 @@ function processTouch(e: TouchEvent) {
   if (e.type !== "touchend") {
     touchX = e.touches.item(0)?.pageX || touchX;
     touchY = e.touches.item(0)?.pageY || touchY;
-    
+
     lastSpriteX = -1;
     lastSpriteY = -1;
 
     holding = true;
-  }
-  else {
+  } else {
     holding = false;
   }
 }
@@ -55,18 +52,17 @@ export function getMoveX(spriteX: number, mapX: number): -1 | 0 | 1 {
   let x: -1 | 0 | 1 = 0;
 
   if (touchX !== -1) {
-    let deltaFromSpriteX = touchX - spriteX-mapX;
-    
-    if (lastSpriteX === -1 || holding)
-      lastSpriteX = spriteX+deltaFromSpriteX;
+    const deltaFromSpriteX = touchX - spriteX - mapX;
 
-    let usedFreeSpace = holding ? TOUCH_FREE_SPACE*2 : TOUCH_FREE_SPACE
+    if (lastSpriteX === -1 || holding) lastSpriteX = spriteX + deltaFromSpriteX;
+
+    const usedFreeSpace = holding ? TOUCH_FREE_SPACE * 2 : TOUCH_FREE_SPACE;
 
     if (Math.abs(spriteX - lastSpriteX) < TOUCH_FREE_SPACE && !holding)
       touchX = -1;
 
-    if (spriteX+mapX - usedFreeSpace > touchX) x = -1;
-    if (spriteX+mapX + usedFreeSpace < touchX) x = 1;
+    if (spriteX + mapX - usedFreeSpace > touchX) x = -1;
+    if (spriteX + mapX + usedFreeSpace < touchX) x = 1;
     return x;
   }
 
@@ -80,16 +76,15 @@ export function getMoveY(spriteY: number, mapY: number): -1 | 0 | 1 {
   let y: -1 | 0 | 1 = 0;
 
   if (touchY !== -1) {
-    let deltaFromSpriteY = touchY - spriteY-mapY;
-    
-    if (lastSpriteY === -1 || holding)
-      lastSpriteY = spriteY+deltaFromSpriteY;
+    const deltaFromSpriteY = touchY - spriteY - mapY;
+
+    if (lastSpriteY === -1 || holding) lastSpriteY = spriteY + deltaFromSpriteY;
 
     if (Math.abs(spriteY - lastSpriteY) < TOUCH_FREE_SPACE && !holding)
       touchY = -1;
 
-    if (spriteY+mapY - TOUCH_FREE_SPACE > touchY) y = -1;
-    if (spriteY+mapY + TOUCH_FREE_SPACE < touchY) y = 1;
+    if (spriteY + mapY - TOUCH_FREE_SPACE > touchY) y = -1;
+    if (spriteY + mapY + TOUCH_FREE_SPACE < touchY) y = 1;
     return y;
   }
 

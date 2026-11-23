@@ -90,7 +90,7 @@ export class TilemapAssembler {
     if (connectivity.corridorCells.length !== cellCount) {
       throw new Error(
         `TilemapAssembler: corridorCells must contain ${cellCount} entries; ` +
-        `received ${connectivity.corridorCells.length}.`,
+          `received ${connectivity.corridorCells.length}.`,
       );
     }
 
@@ -113,7 +113,7 @@ export class TilemapAssembler {
         if (roomOwner[index] !== 0) {
           throw new Error(
             `TilemapAssembler: rooms ${roomOwner[index]} and ${room.id} overlap at ` +
-            `(${point.x}, ${point.y}).`,
+              `(${point.x}, ${point.y}).`,
           );
         }
 
@@ -142,7 +142,7 @@ export class TilemapAssembler {
 
         throw new Error(
           `TilemapAssembler: corridor overlaps room floor at (${x}, ${y}). ` +
-          "Check ConnectivityGenerator corridor carving.",
+            "Check ConnectivityGenerator corridor carving.",
         );
       }
 
@@ -168,9 +168,7 @@ export class TilemapAssembler {
     //
     // The wall layer is initially empty.
     // AutoTiler will populate it using the walloutline mask.
-    const floor = new Array<number>(cellCount).fill(
-      gid(ATLAS.baseFloor),
-    );
+    const floor = new Array<number>(cellCount).fill(gid(ATLAS.baseFloor));
 
     const wall = new Array<number>(cellCount).fill(0);
     const wallOutline = new Array<number>(cellCount).fill(0);
@@ -184,10 +182,7 @@ export class TilemapAssembler {
         const index = this.index(x, y);
 
         const boundary =
-          x === 0 ||
-          y === 0 ||
-          x === this.width - 1 ||
-          y === this.height - 1;
+          x === 0 || y === 0 || x === this.width - 1 || y === this.height - 1;
 
         if (boundary || walkable[index] === 0) {
           // GID 7 marks this cell as a wall for AutoTiler.
@@ -198,13 +193,7 @@ export class TilemapAssembler {
 
     // 5. Optional Hub-style floor accents and translucent ceiling overlays.
     if (this.config.decorate) {
-      this.decorateRooms(
-        rooms,
-        walkable,
-        reservedObjectCells,
-        floor,
-        ceiling,
-      );
+      this.decorateRooms(rooms, walkable, reservedObjectCells, floor, ceiling);
     }
 
     // 6. Convert gameplay placements into the Tiled Objs Object Layer.
@@ -320,27 +309,20 @@ export class TilemapAssembler {
     // and writes the corresponding wall variants into the wall layer.
     //
     // The source walloutline layer is retained in the returned map.
-    return autoTileWalls(
-      map as unknown as TiledMap,
-      {
-        sourceLayerName: "walloutline",
-        targetLayerName: "wall",
-        baseWallGid: gid(ATLAS.wallMask),
-      },
-    );
+    return autoTileWalls(map as unknown as TiledMap, {
+      sourceLayerName: "walloutline",
+      targetLayerName: "wall",
+      baseWallGid: gid(ATLAS.wallMask),
+    });
   }
 
   private validateDimensions(): void {
     if (!Number.isInteger(this.width) || this.width < 3) {
-      throw new Error(
-        "TilemapAssembler: width must be an integer >= 3.",
-      );
+      throw new Error("TilemapAssembler: width must be an integer >= 3.");
     }
 
     if (!Number.isInteger(this.height) || this.height < 3) {
-      throw new Error(
-        "TilemapAssembler: height must be an integer >= 3.",
-      );
+      throw new Error("TilemapAssembler: height must be an integer >= 3.");
     }
   }
 
@@ -371,10 +353,7 @@ export class TilemapAssembler {
         );
       }
 
-      this.assertTilePoint(
-        object.position,
-        `object ${object.id} position`,
-      );
+      this.assertTilePoint(object.position, `object ${object.id} position`);
 
       const footprint = object.footprint ?? {
         x: object.position.x,
@@ -383,27 +362,11 @@ export class TilemapAssembler {
         height: 1,
       };
 
-      this.assertTileRect(
-        footprint,
-        `object ${object.id} footprint`,
-      );
+      this.assertTileRect(footprint, `object ${object.id} footprint`);
 
-      for (
-        let y = footprint.y;
-        y < footprint.y + footprint.height;
-        y++
-      ) {
-        for (
-          let x = footprint.x;
-          x < footprint.x + footprint.width;
-          x++
-        ) {
-          if (
-            x < 0 ||
-            x >= this.width ||
-            y < 0 ||
-            y >= this.height
-          ) {
+      for (let y = footprint.y; y < footprint.y + footprint.height; y++) {
+        for (let x = footprint.x; x < footprint.x + footprint.width; x++) {
+          if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
             throw new Error(
               `TilemapAssembler: object ${object.id} footprint extends outside the map at (${x}, ${y}).`,
             );
@@ -423,9 +386,7 @@ export class TilemapAssembler {
     }
   }
 
-  private toTiledObject(
-    object: GeneratedGameplayObject,
-  ): TiledObject {
+  private toTiledObject(object: GeneratedGameplayObject): TiledObject {
     const footprint = object.footprint ?? {
       x: object.position.x,
       y: object.position.y,
@@ -579,12 +540,8 @@ export class TilemapAssembler {
       id: object.id,
       name,
       type: object.kind,
-      x: isSpawn
-        ? (object.position.x + 0.5) * TILE_WIDTH
-        : topLeftX,
-      y: isSpawn
-        ? (object.position.y + 0.5) * TILE_HEIGHT
-        : topLeftY,
+      x: isSpawn ? (object.position.x + 0.5) * TILE_WIDTH : topLeftX,
+      y: isSpawn ? (object.position.y + 0.5) * TILE_HEIGHT : topLeftY,
       width: isSpawn ? 0 : footprint.width * TILE_WIDTH,
       height: isSpawn ? 0 : footprint.height * TILE_HEIGHT,
       rotation: 0,
@@ -605,24 +562,13 @@ export class TilemapAssembler {
   ): void {
     for (const room of rooms) {
       const roomCells = new Set(
-        room.footprint.map((point) =>
-          this.index(point.x, point.y),
-        ),
+        room.footprint.map((point) => this.index(point.x, point.y)),
       );
 
       const center = this.getFootprintCenter(room.footprint);
 
-      const paintRoomCell = (
-        x: number,
-        y: number,
-        tileId: number,
-      ): void => {
-        if (
-          x < 0 ||
-          x >= this.width ||
-          y < 0 ||
-          y >= this.height
-        ) {
+      const paintRoomCell = (x: number, y: number, tileId: number): void => {
+        if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
           return;
         }
 
@@ -639,43 +585,22 @@ export class TilemapAssembler {
         floor[index] = gid(tileId);
       };
 
-      if (
-        room.type === "LARGE" &&
-        this.rng.next() < 0.8
-      ) {
+      if (room.type === "LARGE" && this.rng.next() < 0.8) {
         // A 3x3 rug-like accent, clipped to the actual room footprint.
         for (let dy = -1; dy <= 1; dy++) {
           for (let dx = -1; dx <= 1; dx++) {
-            paintRoomCell(
-              center.x + dx,
-              center.y + dy,
-              ATLAS.rug,
-            );
+            paintRoomCell(center.x + dx, center.y + dy, ATLAS.rug);
           }
         }
-      } else if (
-        room.type === "DEFAULT" &&
-        this.rng.next() < 0.5
-      ) {
-        paintRoomCell(
-          center.x,
-          center.y,
-          ATLAS.floorAccent,
-        );
+      } else if (room.type === "DEFAULT" && this.rng.next() < 0.5) {
+        paintRoomCell(center.x, center.y, ATLAS.floorAccent);
 
-        paintRoomCell(
-          center.x + 1,
-          center.y,
-          ATLAS.floorAccent,
-        );
+        paintRoomCell(center.x + 1, center.y, ATLAS.floorAccent);
       }
 
       // An occasional four-tile floor motif, painted only where all cells
       // belong to this room and are not occupied by gameplay objects.
-      if (
-        room.footprint.length >= 36 &&
-        this.rng.next() < 0.3
-      ) {
+      if (room.footprint.length >= 36 && this.rng.next() < 0.3) {
         const motif = [
           ATLAS.motifStart,
           ATLAS.motifStart + 1,
@@ -703,49 +628,29 @@ export class TilemapAssembler {
       }
 
       // Preserve the Hub's translucent ceiling accent on selected rooms.
-      if (
-        this.rng.next() <
-        (room.type === "LARGE" ? 0.75 : 0.3)
-      ) {
-        const ceilingCandidates = room.footprint.filter(
-          (point) => {
-            const index = this.index(point.x, point.y);
+      if (this.rng.next() < (room.type === "LARGE" ? 0.75 : 0.3)) {
+        const ceilingCandidates = room.footprint.filter((point) => {
+          const index = this.index(point.x, point.y);
 
-            return (
-              walkable[index] !== 0 &&
-              !reserved.has(index)
-            );
-          },
-        );
+          return walkable[index] !== 0 && !reserved.has(index);
+        });
 
         if (ceilingCandidates.length > 0) {
-          const point = ceilingCandidates[
-            this.rng.nextInt(0, ceilingCandidates.length)
-          ];
+          const point =
+            ceilingCandidates[this.rng.nextInt(0, ceilingCandidates.length)];
 
-          ceiling[this.index(point.x, point.y)] = gid(
-            ATLAS.ceiling,
-          );
+          ceiling[this.index(point.x, point.y)] = gid(ATLAS.ceiling);
         }
       }
 
       // A rare isolated tile-19 mark from the Hub palette.
-      if (
-        room.type === "DEFAULT" &&
-        this.rng.next() < 0.12
-      ) {
-        paintRoomCell(
-          center.x,
-          center.y + 2,
-          ATLAS.isolatedMark,
-        );
+      if (room.type === "DEFAULT" && this.rng.next() < 0.12) {
+        paintRoomCell(center.x, center.y + 2, ATLAS.isolatedMark);
       }
     }
   }
 
-  private getFootprintCenter(
-    footprint: readonly TilePoint[],
-  ): TilePoint {
+  private getFootprintCenter(footprint: readonly TilePoint[]): TilePoint {
     let meanX = 0;
     let meanY = 0;
 
@@ -783,9 +688,7 @@ export class TilemapAssembler {
     length: number,
   ): TilePoint | undefined {
     const footprintKeys = new Set(
-      footprint.map((point) =>
-        this.index(point.x, point.y),
-      ),
+      footprint.map((point) => this.index(point.x, point.y)),
     );
 
     const candidates = footprint.filter((point) => {
@@ -805,19 +708,11 @@ export class TilemapAssembler {
       return undefined;
     }
 
-    return candidates[
-      this.rng.nextInt(0, candidates.length)
-    ];
+    return candidates[this.rng.nextInt(0, candidates.length)];
   }
 
-  private assertTilePoint(
-    point: TilePoint,
-    label: string,
-  ): void {
-    if (
-      !Number.isInteger(point.x) ||
-      !Number.isInteger(point.y)
-    ) {
+  private assertTilePoint(point: TilePoint, label: string): void {
+    if (!Number.isInteger(point.x) || !Number.isInteger(point.y)) {
       throw new Error(
         `TilemapAssembler: ${label} must use integer tile coordinates.`,
       );
@@ -835,10 +730,7 @@ export class TilemapAssembler {
     }
   }
 
-  private assertTileRect(
-    rect: TileRect,
-    label: string,
-  ): void {
+  private assertTileRect(rect: TileRect, label: string): void {
     if (
       !Number.isInteger(rect.x) ||
       !Number.isInteger(rect.y) ||
@@ -853,9 +745,7 @@ export class TilemapAssembler {
     }
   }
 
-  private assertUniqueTiledObjectIds(
-    objects: readonly TiledObject[],
-  ): void {
+  private assertUniqueTiledObjectIds(objects: readonly TiledObject[]): void {
     const ids = new Set<number>();
 
     for (const object of objects) {

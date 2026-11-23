@@ -1,7 +1,18 @@
-import { Core, WorldManager, World as ESEngineWorld, Scene, Entity } from '@esengine/ecs-framework';
-import { WorldMap } from '../world/WorldMap.js';
-import { TransformComponent, VelocityComponent, ColliderComponent, PlayerTag } from './components.js';
-import { MovementSystem } from './systems.js';
+import {
+  Core,
+  WorldManager,
+  World as ESEngineWorld,
+  Scene,
+  Entity,
+} from "@esengine/ecs-framework";
+import { WorldMap } from "../world/WorldMap.js";
+import {
+  TransformComponent,
+  VelocityComponent,
+  ColliderComponent,
+  PlayerTag,
+} from "./components.js";
+import { MovementSystem } from "./systems.js";
 
 // Renamed to SimWorld to avoid clashing with ESEngine's World class
 export interface SimWorld {
@@ -14,13 +25,13 @@ export interface SimWorld {
 }
 
 export class SimulationEngine {
-  private worlds: Map<string, SimWorld> = new Map(); 
+  private worlds: Map<string, SimWorld> = new Map();
   private worldManager: WorldManager;
 
   constructor() {
     // 1. Initialize Core once (required for global services)
     Core.create();
-    
+
     // 2. Initialize the WorldManager for multi-world isolation
     this.worldManager = new WorldManager();
   }
@@ -28,15 +39,15 @@ export class SimulationEngine {
   public createWorld(worldId: string, worldMap: WorldMap): SimWorld {
     // 3. Create an isolated World in the manager
     const engineWorld = this.worldManager.createWorld(worldId);
-    
+
     const scene = new Scene();
     const movementSystem = new MovementSystem(worldMap);
     scene.addSystem(movementSystem);
 
     // 4. Register the scene with the engine World
-    engineWorld.createScene('main', scene);
-    
-    engineWorld.setSceneActive('main', true);
+    engineWorld.createScene("main", scene);
+
+    engineWorld.setSceneActive("main", true);
 
     // 5. Start the World so its systems begin updating automatically
     engineWorld.start();
@@ -78,7 +89,7 @@ export class SimulationEngine {
       console.warn(`Cannot create entity: World '${worldId}' not found.`);
       return null;
     }
-    
+
     return world.scene.createEntity(name);
   }
 
@@ -106,7 +117,12 @@ export class SimulationEngine {
   /**
    * Refactored player spawn using the generic createEntity method.
    */
-  public spawnPlayer(worldId: string, sessionId: string, x: number, y: number): Entity | null {
+  public spawnPlayer(
+    worldId: string,
+    sessionId: string,
+    x: number,
+    y: number,
+  ): Entity | null {
     const entity = this.createEntity(worldId, `Player_${sessionId}`);
     if (!entity) return null;
 
@@ -117,22 +133,28 @@ export class SimulationEngine {
 
     const world = this.worlds.get(worldId)!;
     world.playerEntities.set(sessionId, entity);
-    
+
     return entity;
   }
 
   public removePlayer(worldId: string, sessionId: string) {
     const world = this.worlds.get(worldId);
     if (!world) return;
-    
+
     const entity = world.playerEntities.get(sessionId);
     if (entity) {
-      this.destroyEntity(worldId, entity); 
+      this.destroyEntity(worldId, entity);
       world.playerEntities.delete(sessionId);
     }
   }
 
-  public setPlayerInput(worldId: string, sessionId: string, moveX: number, moveY: number, speed = 75) {
+  public setPlayerInput(
+    worldId: string,
+    sessionId: string,
+    moveX: number,
+    moveY: number,
+    speed = 75,
+  ) {
     const world = this.worlds.get(worldId);
     if (!world) return;
     const entity = world.playerEntities.get(sessionId);
@@ -149,7 +171,7 @@ export class SimulationEngine {
     for (const world of this.worlds.values()) {
       world.movementSystem.setDeltaTime(dt);
     }
-    
+
     // 7. Update the WorldManager instead of Core.setScene/Core.update
     // This updates all active worlds and their scenes in isolation.
     this.worldManager.updateAll();

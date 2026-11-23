@@ -1,4 +1,3 @@
-
 import type { RoomRoster, RoomType } from "../types/RoomTypes.js";
 
 /**
