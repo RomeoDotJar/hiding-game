@@ -56,21 +56,6 @@ function initPredict(room: Room, worldMap?: WorldMap): GameNetwork {
     });
   }
 
-  // Built-in approach. Replaced with a custom one
-  // predict.attachAll("players", {
-  //   mode: "extrapolate",
-  //   fields: ["x", "y", "isInteracting"],
-  //   step: (ctx: StepContext, playerState: unknown, cmd: unknown) =>
-  //     applyInput(
-  //       playerState as unknown as PlayerEntity,
-  //       cmd as MoveInput,
-  //       ctx.dt,
-  //     ),
-  //   smoothMs: SMOOTHING,
-  //   delay: PREDICTION_DELAY,
-  //   snap: 0
-  // });
-
   const self = room.state.players.get(room.sessionId);
   const input = room.input({ type: MoveInput });
 
@@ -140,8 +125,8 @@ export async function connectToGame(worldMap?: WorldMap): Promise<GameNetwork> {
     }
 
     const callbacks = Callbacks.get(room);
-    callbacks.onAdd("players", () => {
-      if (room.state.players.has(room.sessionId)) {
+    callbacks.onAdd("players", (_, sessionId) => {
+      if (sessionId === room.sessionId) {
         const worldId = room.state.players.get(room.sessionId)?.worldId;
         const worldInfo = room.state.worlds.get(worldId!);
         loadMapData(worldInfo!).then((loadedMapData: LoadedMapData) => {

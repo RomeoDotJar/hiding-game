@@ -19,7 +19,7 @@ export class MyRoom extends Room<{ state: MyRoomState, input: MoveInput }> {
   rewind = this.allowRewindState({ maxRewindMs: 500 });
 
   inputs = this.defineInput(MoveInput, {
-    bufferMaxSize: 64
+    bufferMaxSize: 128
   });
 
   private joinCount = 0;
