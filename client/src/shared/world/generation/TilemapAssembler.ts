@@ -1,8 +1,4 @@
-import type {
-  TiledLayer,
-  TiledLayerProperty,
-  TiledMap,
-} from "../TiledMap.js";
+import type { TiledLayer, TiledLayerProperty, TiledMap } from "../TiledMap.js";
 import type { MapGenerationConfig } from "./config/MapGenerationConfig.js";
 import type { ConnectivityResult } from "./ConnectivityGenerator.js";
 import type { GeneratedRoom } from "./types/RoomTypes.js";
