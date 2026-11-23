@@ -11,7 +11,7 @@ export function resolveAxisCollision(
   endPos: number,
   otherPos: number,
   radius: number,
-  isXAxis: boolean
+  isXAxis: boolean,
 ): number {
   const checkCollision = (pos: number) =>
     isXAxis
@@ -29,7 +29,7 @@ export function resolveAxisCollision(
     if (checkCollision(mid)) {
       invalid = mid;
     } else {
-      valid = mid; 
+      valid = mid;
     }
   }
   return valid;
@@ -48,10 +48,10 @@ export function applyInput(
   cmd: MoveInput,
   dt: number,
   worldMap?: (() => WorldMap | undefined) | undefined,
-  radius: number = 2
+  radius: number = 2,
 ) {
   const speed = 75;
-  
+
   // Store velocity in units per second (NOT units per tick!)
   // This is crucial so remote client extrapolation math works correctly.
   player.vx = cmd.moveX * speed;
@@ -62,10 +62,24 @@ export function applyInput(
 
   if (worldMap && worldMap()) {
     // 1. Resolve X-axis movement
-    player.x = resolveAxisCollision(worldMap()!, player.x, nextX, player.y, radius, true);
+    player.x = resolveAxisCollision(
+      worldMap()!,
+      player.x,
+      nextX,
+      player.y,
+      radius,
+      true,
+    );
 
     // 2. Resolve Y-axis movement (using the newly resolved X position)
-    player.y = resolveAxisCollision(worldMap()!, player.y, nextY, player.x, radius, false);
+    player.y = resolveAxisCollision(
+      worldMap()!,
+      player.y,
+      nextY,
+      player.x,
+      radius,
+      false,
+    );
   } else {
     // Fallback if no map is loaded yet
     player.x = nextX;

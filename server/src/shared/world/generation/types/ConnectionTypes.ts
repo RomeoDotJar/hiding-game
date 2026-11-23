@@ -1,8 +1,4 @@
-
-import type {
-  CardinalDirection,
-  TilePoint,
-} from "./MapGeometry.js";
+import type { CardinalDirection, TilePoint } from "../../MapGeometry.js";
 
 /**
  * Defines one doorway at a room boundary.
@@ -24,9 +20,7 @@ export interface DoorwayAnchor {
 /**
  * How the connection was created.
  */
-export type RoomConnectionType =
-  | "TREE"
-  | "EXTRA";
+export type RoomConnectionType = "TREE" | "EXTRA";
 
 /**
  * Connection between two rooms.
@@ -54,8 +48,5 @@ export interface RoomConnection {
    * Each connection has exactly two doorway anchors:
    * one for each connected room.
    */
-  doorways: [
-    DoorwayAnchor,
-    DoorwayAnchor
-  ];
+  doorways: [DoorwayAnchor, DoorwayAnchor];
 }

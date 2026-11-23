@@ -6,7 +6,7 @@ import type {
   RoomGenerationRules,
   RoomRosterEntry,
 } from "./types/RoomTypes.js";
-import type { TilePoint, TileRect } from "./types/MapGeometry.js";
+import type { TilePoint, TileRect } from "../MapGeometry.js";
 
 /**
  * Creates room footprints and places them on the map.

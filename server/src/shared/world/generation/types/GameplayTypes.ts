@@ -1,9 +1,4 @@
-
-import type {
-  CardinalDirection,
-  TilePoint,
-  TileRect,
-} from "./MapGeometry.js";
+import type { CardinalDirection, TilePoint, TileRect } from "../../MapGeometry.js";
 import { GeneratedRoom } from "./RoomTypes.js";
 
 /**
@@ -21,9 +16,7 @@ export const TILED_OBJECT_TYPES = {
 } as const;
 
 export type GameplayObjectType =
-  typeof TILED_OBJECT_TYPES[
-    keyof typeof TILED_OBJECT_TYPES
-  ];
+  (typeof TILED_OBJECT_TYPES)[keyof typeof TILED_OBJECT_TYPES];
 
 /**
  * Common properties shared by generated objects.
@@ -73,10 +66,17 @@ export interface GeneratedChalkChest extends GeneratedObjectBase {
 }
 
 /**
+ * Allowed closet facing directions. NORTH is intentionally excluded.
+ */
+export type ClosetOrientation = "SOUTH" | "WEST" | "EAST";
+
+/**
  * Closet placement.
  */
 export interface GeneratedCloset extends GeneratedObjectBase {
   kind: "Closet";
+
+  orientation: ClosetOrientation;
 }
 
 /**

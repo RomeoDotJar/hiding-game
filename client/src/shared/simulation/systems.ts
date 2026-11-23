@@ -98,8 +98,9 @@ export class InteractionSystem extends EntitySystem {
         const dy = pTrans.y - iTrans.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        if (dist <= iComp.radius) {
-          console.log(`Player interacted with ${iComp.interactType}!`);
+        if (dist <= 2) {
+          //iComp.radius) {
+          console.log(`Player interacted with ${iComp.type}`); //${iComp.interactType}!`);
           // Here you would trigger the logic (e.g., broadcast a message to the client)
         }
       }

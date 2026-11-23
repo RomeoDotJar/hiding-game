@@ -1,6 +1,6 @@
 import { Component, ECSComponent } from "@esengine/ecs-framework";
 
-@ECSComponent('TransformComponent')
+@ECSComponent("TransformComponent")
 export class TransformComponent extends Component {
   constructor(
     public x: number = 0,
@@ -10,7 +10,7 @@ export class TransformComponent extends Component {
   }
 }
 
-@ECSComponent('VelocityComponent')
+@ECSComponent("VelocityComponent")
 export class VelocityComponent extends Component {
   constructor(
     public vx: number = 0,
@@ -20,22 +20,29 @@ export class VelocityComponent extends Component {
   }
 }
 
-@ECSComponent('ColliderComponent')
+@ECSComponent("ColliderComponent")
 export class ColliderComponent extends Component {
   constructor(public radius: number = 1) {
     super();
   }
 }
 
-@ECSComponent('InteractableComponent')
+@ECSComponent("InteractableComponent")
 export class InteractableComponent extends Component {
-  constructor(public interactType: string, public radius: number = 12) {
+  constructor(public type: "Chest" | "Ritual" | "Closet" | "Door" | "SpawnArea", public id: number) {
+    super();
+  }
+}
+
+@ECSComponent("DoorComponent")
+export class DoorComponent extends Component {
+  constructor(public isOpen: boolean, public orientation: "NORTH" | "EAST" | "SOUTH" | "WEST") {
     super();
   }
 }
 
 // Tags to identify entity types
-@ECSComponent('PlayerTag')
+@ECSComponent("PlayerTag")
 export class PlayerTag extends Component {}
-@ECSComponent('MonsterTag')
+@ECSComponent("MonsterTag")
 export class MonsterTag extends Component {}

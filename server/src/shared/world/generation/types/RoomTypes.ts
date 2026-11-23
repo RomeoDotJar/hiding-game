@@ -1,22 +1,16 @@
-
-import type { TilePoint, TileRect } from "./MapGeometry.js";
+import type { TilePoint, TileRect } from "../../MapGeometry.js";
 
 /**
  * General gameplay category.
  *
  * This is independent of the room's physical shape.
  */
-export type RoomType =
-  | "DEFAULT"
-  | "NARROW"
-  | "LARGE";
+export type RoomType = "DEFAULT" | "NARROW" | "LARGE";
 
 /**
  * Physical geometry of a room.
  */
-export type RoomShape =
-  | "RECTANGLE"
-  | "L_SHAPED";
+export type RoomShape = "RECTANGLE" | "L_SHAPED";
 
 /**
  * Capabilities determine which gameplay placements
@@ -38,10 +32,7 @@ export type RoomCapability =
  * a room can be eligible for a ritual without
  * actually being selected as one.
  */
-export type RoomSpecialRole =
-  | "RITUAL"
-  | "PLAYER_SPAWN"
-  | "MONSTER_SPAWN";
+export type RoomSpecialRole = "RITUAL" | "PLAYER_SPAWN" | "MONSTER_SPAWN";
 
 /**
  * Individual room generation rules.

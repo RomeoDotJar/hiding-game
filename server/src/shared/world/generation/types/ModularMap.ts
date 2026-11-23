@@ -1,13 +1,8 @@
-
 import type { TiledMap } from "../../TiledMap.js";
 
-import type {
-  GeneratedRoom,
-} from "./RoomTypes.js";
+import type { GeneratedRoom } from "./RoomTypes.js";
 
-import type {
-  RoomConnection,
-} from "./ConnectionTypes.js";
+import type { RoomConnection } from "./ConnectionTypes.js";
 
 /**
  * Complete logical and visual representation

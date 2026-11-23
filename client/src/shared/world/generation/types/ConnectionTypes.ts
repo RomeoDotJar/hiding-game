@@ -1,4 +1,4 @@
-import type { CardinalDirection, TilePoint } from "./MapGeometry.js";
+import type { CardinalDirection, TilePoint } from "../../MapGeometry.js";
 
 /**
  * Defines one doorway at a room boundary.

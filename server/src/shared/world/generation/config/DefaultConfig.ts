@@ -1,12 +1,9 @@
-
 import type {
   MapGenerationConfig,
   MapGenerationConfigInput,
 } from "./MapGenerationConfig.js";
 
-import {
-  DEFAULT_ROOM_ROSTER,
-} from "./DefaultRoomRoster.js";
+import { DEFAULT_ROOM_ROSTER } from "./DefaultRoomRoster.js";
 
 /**
  * Default settings for room-based map generation.
@@ -26,7 +23,7 @@ export const DEFAULT_MAP_GENERATION_CONFIG: MapGenerationConfig = {
 
     corridorWidth: 2,
     minRoomSpacing: 2,
-    minDoorwaySeparation: 4
+    minDoorwaySeparation: 4,
   },
 
   objectives: {
@@ -121,29 +118,20 @@ export function createMapGenerationConfig(
 /**
  * Validates the resolved configuration before generation.
  */
-export function validateMapGenerationConfig(
-  config: MapGenerationConfig,
-): void {
+export function validateMapGenerationConfig(config: MapGenerationConfig): void {
   const assertInteger = (
     value: number,
     name: string,
     minimum: number,
   ): void => {
     if (!Number.isInteger(value) || value < minimum) {
-      throw new Error(
-        `${name} must be an integer >= ${minimum}.`,
-      );
+      throw new Error(`${name} must be an integer >= ${minimum}.`);
     }
   };
 
-  const assertProbability = (
-    value: number,
-    name: string,
-  ): void => {
+  const assertProbability = (value: number, name: string): void => {
     if (!Number.isFinite(value) || value < 0 || value > 1) {
-      throw new Error(
-        `${name} must be between 0 and 1.`,
-      );
+      throw new Error(`${name} must be between 0 and 1.`);
     }
   };
 
@@ -158,34 +146,15 @@ export function validateMapGenerationConfig(
     "extraConnectionChance",
   );
 
-  assertProbability(
-    config.connectivity.deadEndChance,
-    "deadEndChance",
-  );
+  assertProbability(config.connectivity.deadEndChance, "deadEndChance");
 
-  assertInteger(
-    config.connectivity.corridorWidth,
-    "corridorWidth",
-    1,
-  );
+  assertInteger(config.connectivity.corridorWidth, "corridorWidth", 1);
 
-  assertInteger(
-    config.connectivity.minRoomSpacing,
-    "minRoomSpacing",
-    0,
-  );
+  assertInteger(config.connectivity.minRoomSpacing, "minRoomSpacing", 0);
 
-  assertInteger(
-    config.objectives.chalkPerRitual,
-    "chalkPerRitual",
-    1,
-  );
+  assertInteger(config.objectives.chalkPerRitual, "chalkPerRitual", 1);
 
-  assertInteger(
-    config.objectives.extraChalkChests,
-    "extraChalkChests",
-    0,
-  );
+  assertInteger(config.objectives.extraChalkChests, "extraChalkChests", 0);
 
   assertInteger(
     config.interactables.closets.coverageRadius,
@@ -194,14 +163,10 @@ export function validateMapGenerationConfig(
   );
 
   if (
-    !Number.isFinite(
-      config.interactables.closets.additionalPerPlayer,
-    ) ||
+    !Number.isFinite(config.interactables.closets.additionalPerPlayer) ||
     config.interactables.closets.additionalPerPlayer < 0
   ) {
-    throw new Error(
-      "additionalPerPlayer must be a non-negative number.",
-    );
+    throw new Error("additionalPerPlayer must be a non-negative number.");
   }
 
   assertInteger(
@@ -222,11 +187,7 @@ export function validateMapGenerationConfig(
     0,
   );
 
-  assertInteger(
-    config.walls.minWallThickness,
-    "minWallThickness",
-    1,
-  );
+  assertInteger(config.walls.minWallThickness, "minWallThickness", 1);
 
   assertInteger(
     config.walls.maxWallThickness,
@@ -251,14 +212,12 @@ export function validateMapGenerationConfig(
   ] as const;
 
   const availableCapabilities = new Set(
-    config.roomRoster.flatMap(entry => entry.Capabilities),
+    config.roomRoster.flatMap((entry) => entry.Capabilities),
   );
 
   for (const capability of requiredCapabilities) {
     if (!availableCapabilities.has(capability)) {
-      throw new Error(
-        `RoomRoster has no room with capability ${capability}.`,
-      );
+      throw new Error(`RoomRoster has no room with capability ${capability}.`);
     }
   }
 
@@ -268,17 +227,13 @@ export function validateMapGenerationConfig(
     }
 
     if (roomIds.has(entry.Room)) {
-      throw new Error(
-        `Duplicate room identifier: ${entry.Room}`,
-      );
+      throw new Error(`Duplicate room identifier: ${entry.Room}`);
     }
 
     roomIds.add(entry.Room);
 
     if (!Number.isFinite(entry.Weight) || entry.Weight <= 0) {
-      throw new Error(
-        `Invalid weight for room ${entry.Room}.`,
-      );
+      throw new Error(`Invalid weight for room ${entry.Room}.`);
     }
 
     totalWeight += entry.Weight;
@@ -318,14 +273,11 @@ export function validateMapGenerationConfig(
     config.interactables.doors.initialState !== "OPEN" &&
     config.interactables.doors.initialState !== "CLOSED"
   ) {
-    throw new Error(
-      "Invalid initial door state.",
-    );
+    throw new Error("Invalid initial door state.");
   }
 
   const requiredPlayerRooms = Math.ceil(
-    config.playerCount /
-    config.spawns.playerSpawnRoomCapacity,
+    config.playerCount / config.spawns.playerSpawnRoomCapacity,
   );
 
   const minimumRoomCount =
@@ -336,7 +288,7 @@ export function validateMapGenerationConfig(
   if (config.roomsCount < minimumRoomCount) {
     throw new Error(
       `roomsCount must be at least ${minimumRoomCount} ` +
-      "to reserve separate Ritual and spawn rooms.",
+        "to reserve separate Ritual and spawn rooms.",
     );
   }
 }

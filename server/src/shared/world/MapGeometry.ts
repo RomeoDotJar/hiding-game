@@ -36,11 +36,7 @@ export interface TileRect {
   height: number;
 }
 
-export type CardinalDirection =
-  | "NORTH"
-  | "EAST"
-  | "SOUTH"
-  | "WEST";
+export type CardinalDirection = "NORTH" | "EAST" | "SOUTH" | "WEST";
 
 /**
  * Fixed dimensions of the existing Hub tileset.
@@ -52,9 +48,7 @@ export const TILE_HEIGHT = 8;
  * Converts a tile coordinate into the pixel
  * coordinate of the tile's top-left corner.
  */
-export function tileToPixelTopLeft(
-  point: TilePoint,
-): PixelPoint {
+export function tileToPixelTopLeft(point: TilePoint): PixelPoint {
   return {
     x: point.x * TILE_WIDTH,
     y: point.y * TILE_HEIGHT,
@@ -67,9 +61,7 @@ export function tileToPixelTopLeft(
  *
  * Particularly useful for Tiled point objects.
  */
-export function tileToPixelCenter(
-  point: TilePoint,
-): PixelPoint {
+export function tileToPixelCenter(point: TilePoint): PixelPoint {
   return {
     x: (point.x + 0.5) * TILE_WIDTH,
     y: (point.y + 0.5) * TILE_HEIGHT,
@@ -79,9 +71,7 @@ export function tileToPixelCenter(
 /**
  * Converts a pixel position into its containing tile.
  */
-export function pixelToTile(
-  point: PixelPoint,
-): TilePoint {
+export function pixelToTile(point: PixelPoint): TilePoint {
   return {
     x: Math.floor(point.x / TILE_WIDTH),
     y: Math.floor(point.y / TILE_HEIGHT),

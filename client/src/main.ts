@@ -24,7 +24,8 @@ import { Callbacks } from "@colyseus/sdk";
 import { PROXY_URL } from "./shared/constants.js";
 import { Player, WorldInfo } from "./shared/schema/MyRoomState.js";
 import { WorldMap } from "./shared/world/WorldMap.js";
-import { loadMapData } from "./shared/world/load.js";
+import { LoadedMapData, loadMapData } from "./shared/world/utils/load.js";
+import { GeneratedGameplayObject as GameplayObject } from "./shared/world/generation/types/GameplayTypes.js";
 
 const debugUI = new DebugUI();
 
@@ -61,13 +62,13 @@ function initGame(app: Application, net: GameNetwork) {
 
   const worldId = room.state.players.get(room.sessionId)?.worldId;
   const worldInfo = room.state.worlds.get(worldId!);
-  loadMapData(worldInfo!).then((newMap) => {
-    console.log(worldId, "loaded");
-    worldMap = newMap!;
-    loadFromWorldMap(app, worldMap);
+  loadMapData(worldInfo!).then((loadedMapData: LoadedMapData) => {
+    //console.log(worldId, "loaded");
+    worldMap = loadedMapData.worldMap!;
+    loadFromWorldMap(app, worldMap, loadedMapData.gameplayObjects);
   });
 
-  console.log("Successfully connected to the game room!", room);
+  console.log("Successfully connected to the game room", room.roomId);
   debugUI.updateField("Room", room.roomId);
   debugUI.updateField("PlayerID", room.sessionId);
 
@@ -140,7 +141,7 @@ function initGame(app: Application, net: GameNetwork) {
 
       // Hey, it's me!
       room.onMessage("moveToWorld", ({ worldInfo, worldId }) => {
-        console.log(worldInfo, worldId);
+        //console.log(worldInfo, worldId);
 
         if (worldId !== lastKnownWorldId) {
           lastKnownWorldId = worldId;
@@ -179,7 +180,7 @@ function initGame(app: Application, net: GameNetwork) {
 
   // Listen to the phase changing
   callbacks.listen("phase", (newPhase: string) => {
-    console.log("Phase changed to:", newPhase);
+    //console.log("Phase changed to:", newPhase);
     debugUI.updateField("Phase", newPhase.toUpperCase());
   });
 
@@ -398,23 +399,91 @@ function initGame(app: Application, net: GameNetwork) {
   });
 }
 
-async function renderMapData(worldMap: WorldMap, cameraContainer: Container) {
+async function renderMapData(
+  worldMap: WorldMap,
+  cameraContainer: Container,
+  gameplayObjects?: GameplayObject[],
+) {
   const mapData = worldMap.mapData;
-
-  console.log(mapData);
 
   const tilesetInfo = mapData.tilesets[0];
   const baseTexture = await Assets.load(
     `assets/${tilesetInfo.source.split(".")[0]}.png`,
   );
 
+  const objectContainer = new Container();
+
+  if (!gameplayObjects) gameplayObjects = [];
+
+  for (const obj of gameplayObjects) {
+    const pixelX =
+      (obj.position.x + (obj.footprint?.width ?? 1) / 2) * 8 * TILEMAP_UPSCALE;
+    const pixelY =
+      (obj.position.y + (obj.footprint?.height ?? 1) / 2) * 8 * TILEMAP_UPSCALE;
+
+    const g = new Graphics();
+    let color = 0xffffff;
+    if (obj.kind === "Chest") color = 0x00ff00; // Green
+    if (obj.kind === "Ritual") color = 0xff00ff; // Purple
+    if (obj.kind === "Closet") color = 0x0000ff; // Blue
+    if (obj.kind === "Door") color = 0xff8800; // Orange
+    if (obj.kind === "SpawnArea") color = 0xffff00; // Yellow
+
+    // Draw a small square for the object
+    g.rect(
+      -4 * TILEMAP_UPSCALE,
+      -4 * TILEMAP_UPSCALE,
+      8 * TILEMAP_UPSCALE,
+      8 * TILEMAP_UPSCALE,
+    ).fill(color);
+    g.x = pixelX;
+    g.y = pixelY;
+
+    const debug_g = new Graphics();
+
+    const style = new TextStyle({
+      fontFamily: "Consolas,Arial",
+      fontSize: 12,
+      fill: 0xffffff,
+      lineHeight: 16,
+      stroke: { color: 0x000000, width: 8 },
+    });
+
+    let text = "";
+    for (const key of Object.keys(obj)) {
+      const value: string = obj[key as keyof typeof obj]?.toString() ?? "";
+      if (!value || value.startsWith("[")) continue;
+      text += key + ": " + value + "\n";
+    }
+
+    const label = new Text({ text: text, style });
+    label.resolution = 2;
+
+    label.anchor.set(0.5, 1);
+    label.y = -12;
+
+    debug_g.addChild(label);
+
+    g.eventMode = "dynamic";
+    g.addEventListener("mouseover", () => {
+      debug_g.visible = debugUI.isVisible();
+    });
+    g.addEventListener("mouseleave", () => {
+      debug_g.visible = false;
+    });
+
+    debug_g.visible = false;
+    g.addChild(debug_g);
+
+    // Add to a container (e.g., a new `interactableContainer` or `tileContainer`)
+    objectContainer.addChild(g);
+  }
+
   const renderScale = TILEMAP_UPSCALE;
 
   const tileTextures: Record<number, Texture> = {};
   const cols = Math.floor(baseTexture.width / mapData.tilewidth);
   const rows = Math.floor(baseTexture.height / mapData.tileheight);
-
-  console.log("Loading hub map 1/3");
 
   let gid = tilesetInfo.firstgid || 1;
   for (let row = 0; row < rows; row++) {
@@ -483,8 +552,7 @@ async function renderMapData(worldMap: WorldMap, cameraContainer: Container) {
       } catch {
         cameraContainer.addChild(debugContainer);
         cameraContainer.addChild(playerContainer);
-
-        console.log("Player Container level");
+        cameraContainer.addChild(objectContainer);
       }
     }
 
@@ -496,31 +564,28 @@ async function renderMapData(worldMap: WorldMap, cameraContainer: Container) {
 
 // TILEMAP INIT
 async function loadFromWorldInfo(app: Application, worldInfo: WorldInfo) {
-  const worldMap = await loadMapData(worldInfo);
+  const { worldMap, gameplayObjects } = await loadMapData(worldInfo);
   if (!worldMap) return;
 
-  return loadFromWorldMap(app, worldMap);
+  return loadFromWorldMap(app, worldMap, gameplayObjects);
 }
 
-async function loadFromWorldMap(app: Application, hubWorld: WorldMap) {
-  const mapData = hubWorld.mapData;
-
-  console.log("Map dimensions:", mapData.width, "x", mapData.height);
-  console.log("Map data:", mapData);
+async function loadFromWorldMap(
+  app: Application,
+  hubWorld: WorldMap,
+  gameplayObjects?: GameplayObject[],
+) {
+  // const mapData = hubWorld.mapData;
 
   cameraContainer.removeChildren();
-  await renderMapData(hubWorld, cameraContainer);
-
-  console.log("Loading hub map 2/3");
+  await renderMapData(hubWorld, cameraContainer, gameplayObjects);
 
   // Add the rendered map to your PixiJS stage (at index 0 so it stays behind entities)
   app.stage.addChild(cameraContainer);
 
   // Find the spawn area object
-  const objectsLayer = mapData.layers.find((l) => l.name === "Objs");
-  const spawnArea = objectsLayer?.objects?.find((o) => o.type === "SpawnArea");
-
-  console.log("Spawn Area found at:", spawnArea?.x, spawnArea?.y);
+  // const objectsLayer = mapData.layers.find((l) => l.name === "Objs");
+  // const spawnArea = objectsLayer?.objects?.find((o) => o.type === "SpawnArea");
 
   return hubWorld;
 }
@@ -555,7 +620,6 @@ const FLIP_D = 0x20000000;
       const newCap = parseInt(val, 10);
       if (!isNaN(newCap) && newCap > 0) {
         app.ticker.maxFPS = newCap;
-        console.log(`FPS capped to ${newCap}`);
       }
     });
   }

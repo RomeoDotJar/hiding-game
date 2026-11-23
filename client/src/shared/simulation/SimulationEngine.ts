@@ -11,8 +11,12 @@ import {
   VelocityComponent,
   ColliderComponent,
   PlayerTag,
+  InteractableComponent,
+  DoorComponent,
 } from "./components.js";
 import { MovementSystem } from "./systems.js";
+import { TILE_HEIGHT, TILE_WIDTH } from "../world/MapGeometry.js";
+import { GeneratedGameplayObject as GameplayObject } from "../world/generation/types/GameplayTypes.js";
 
 // Renamed to SimWorld to avoid clashing with ESEngine's World class
 export interface SimWorld {
@@ -78,6 +82,52 @@ export class SimulationEngine {
 
   public getWorld(worldId: string): SimWorld | undefined {
     return this.worlds.get(worldId);
+  }
+
+  /**
+   * Populates a world with generated gameplay objects (Chests, Doors, etc.)
+   */
+  public spawnGameplayObjects(
+    worldId: string,
+    objects: GameplayObject[],
+  ): void {
+    const world = this.worlds.get(worldId);
+    if (!world) return;
+
+    for (const obj of objects) {
+      // Calculate the center pixel position of the object
+      const pixelX =
+        (obj.position.x + (obj.footprint?.width ?? 1) / 2) * TILE_WIDTH;
+      const pixelY =
+        (obj.position.y + (obj.footprint?.height ?? 1) / 2) * TILE_HEIGHT;
+
+      const entity = this.createEntity(worldId, `${obj.kind}_${obj.id}`);
+      if (!entity) continue;
+
+      entity.addComponent(new TransformComponent(pixelX, pixelY));
+
+      if (obj.kind === "Door") {
+        entity.addComponent(new InteractableComponent("Door", obj.id));
+        entity.addComponent(
+          new DoorComponent(obj.initialState === "OPEN", obj.orientation),
+        );
+
+        // If the door starts CLOSED, we must mark its tiles as solid in the physics grid
+        if (obj.initialState === "CLOSED") {
+          const w = obj.footprint?.width ?? 1;
+          const h = obj.footprint?.height ?? 1;
+          for (let dx = 0; dx < w; dx++) {
+            for (let dy = 0; dy < h; dy++) {
+              // world.worldMap.setSolid(obj.position.x + dx, obj.position.y + dy, true);
+            }
+          }
+        }
+      } else if (
+        ["Chest", "Ritual", "Closet", "SpawnArea"].includes(obj.kind)
+      ) {
+        entity.addComponent(new InteractableComponent(obj.kind, obj.id));
+      }
+    }
   }
 
   /**

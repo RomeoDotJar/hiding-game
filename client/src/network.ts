@@ -11,7 +11,7 @@ import { MyRoomState, Player } from "./shared/schema/MyRoomState.js";
 import { applyInput } from "./shared/input/applyInput.js";
 import { LOCAL_URL, PROXY_URL, USE_LOCALHOST } from "./shared/constants.js";
 import { WorldMap } from "./shared/world/WorldMap.js";
-import { loadMapData } from "./shared/world/load.js";
+import { LoadedMapData, loadMapData } from "./shared/world/utils/load.js";
 //import { getMoveX, getMoveY, isInteractKeyPressed } from './input.js';
 
 const useLocalHost = USE_LOCALHOST;
@@ -46,7 +46,9 @@ const SMOOTHING = 2;
 
 let predict: Predict;
 function initPredict(room: Room, worldMap?: WorldMap): GameNetwork {
-  if (!predict) {
+  if (predict) {
+    //predict.dispose();
+  } else {
     predict = Predict.get(room, {
       mode: "lerp",
       delay: PREDICTION_DELAY,
@@ -72,14 +74,9 @@ function initPredict(room: Room, worldMap?: WorldMap): GameNetwork {
   const self = room.state.players.get(room.sessionId);
   const input = room.input({ type: MoveInput });
 
-  console.log("Moved to world", self.worldId);
-
-  room.onMessage("moveToWorld", ({ worldInfo, worldId }) => {
-    console.log("moveToWorld", worldInfo);
-
-    loadMapData(worldInfo).then((loadedWorldMap?: WorldMap) => {
-      worldMap = loadedWorldMap;
-      console.log("Moved to world", worldId);
+  room.onMessage("moveToWorld", ({ worldInfo }) => {
+    loadMapData(worldInfo).then((loadedMapData: LoadedMapData) => {
+      worldMap = loadedMapData.worldMap;
     });
   });
 
@@ -104,7 +101,6 @@ function initPredict(room: Room, worldMap?: WorldMap): GameNetwork {
 
 export async function connectToGame(worldMap?: WorldMap): Promise<GameNetwork> {
   const serverUrl = await getServerUrl();
-  console.log("Connecting to:", serverUrl);
   const client = new Client(serverUrl);
   const savedToken = sessionStorage.getItem("reconnection_token");
   let room: Room;
@@ -112,9 +108,7 @@ export async function connectToGame(worldMap?: WorldMap): Promise<GameNetwork> {
   // Handle Connection / Reconnection
   if (savedToken) {
     try {
-      console.log("Attempting to reconnect...");
       room = await client.reconnect(savedToken);
-      console.log("Successfully reconnected to room:", room.roomId);
     } catch (e) {
       console.warn("Reconnection failed, joining a new room...", e);
       sessionStorage.removeItem("reconnection_token");
@@ -122,7 +116,6 @@ export async function connectToGame(worldMap?: WorldMap): Promise<GameNetwork> {
     }
   } else {
     room = await client.joinOrCreate("my_room");
-    console.log("Joined room:", room.roomId);
   }
 
   sessionStorage.setItem("reconnection_token", room.reconnectionToken);
@@ -139,9 +132,8 @@ export async function connectToGame(worldMap?: WorldMap): Promise<GameNetwork> {
     ) {
       const worldId = room.state.players.get(room.sessionId)?.worldId;
       const worldInfo = room.state.worlds.get(worldId!);
-      loadMapData(worldInfo!).then((newMap) => {
-        console.log(newMap);
-        worldMap = newMap!;
+      loadMapData(worldInfo!).then((loadedMapData: LoadedMapData) => {
+        worldMap = loadedMapData.worldMap!;
         resolve(initPredict(room, worldMap));
       });
       return;
@@ -152,9 +144,8 @@ export async function connectToGame(worldMap?: WorldMap): Promise<GameNetwork> {
       if (room.state.players.has(room.sessionId)) {
         const worldId = room.state.players.get(room.sessionId)?.worldId;
         const worldInfo = room.state.worlds.get(worldId!);
-        loadMapData(worldInfo!).then((newMap) => {
-          console.log(newMap);
-          worldMap = newMap!;
+        loadMapData(worldInfo!).then((loadedMapData: LoadedMapData) => {
+          worldMap = loadedMapData.worldMap!;
           resolve(initPredict(room, worldMap));
         });
       }

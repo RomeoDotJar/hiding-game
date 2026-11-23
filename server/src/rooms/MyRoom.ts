@@ -1,5 +1,5 @@
 import { Room, Client, CloseCode, type StepContext, Delayed } from "colyseus";
-import { Player, MyRoomState, WorldInfo, GamePhase } from "../shared/schema/MyRoomState.js";
+import { Player, MyRoomState, WorldInfo, GamePhase, InteractableState } from "../shared/schema/MyRoomState.js";
 import { MoveInput } from "../shared/input/MoveInput.js";
 import { TICK_RATE } from "../shared/constants.js";
 import { WorldMap } from "../shared/world/WorldMap.js";
@@ -8,7 +8,7 @@ import fs from 'fs';
 import { SimulationEngine } from "../shared/simulation/SimulationEngine.js";
 import { generateGameBoard } from "../shared/world/generateTest.js";
 import { TransformComponent, VelocityComponent } from "../shared/simulation/components.js";
-import { loadMapData } from "../shared/world/load.js";
+import { LoadedMapData, loadMapData } from "../shared/world/utils/load.js";
 
 export class MyRoom extends Room<{ state: MyRoomState, input: MoveInput }> {
   private simEngine!: SimulationEngine;
@@ -221,14 +221,33 @@ export class MyRoom extends Room<{ state: MyRoomState, input: MoveInput }> {
     info.seed = seed;
     this.state.worlds.set(this.gameBoardId, info);
     
-    loadMapData(info).then((gbWorld) => {
-    this.simEngine.createWorld(this.gameBoardId, gbWorld);
+    loadMapData(info).then((loadedMapData: LoadedMapData) => {
+      const gbWorld = loadedMapData.worldMap;
+      const gameplayObjects = loadedMapData.gameplayObjects;
 
-    // Move all players into the new world
-    for (const [sessionId, player] of this.state.players) {
-      let spawnPoint = this.getSpawnPoint(this.gameBoardId);
-      this.movePlayerToWorld(sessionId, player, this.gameBoardId, spawnPoint.x, spawnPoint.y);
-    }
+      this.simEngine.createWorld(this.gameBoardId, gbWorld);
+      this.simEngine.spawnGameplayObjects(this.gameBoardId, gameplayObjects);
+
+      // Register interactable states in the Colyseus Schema
+      for (const obj of gameplayObjects) {
+        // We don't necessarily need to sync SpawnAreas to the client via Schema
+        if (obj.kind !== "SpawnArea") {
+          const state = new InteractableState();
+          state.id = obj.id.toString();
+          state.type = obj.kind;
+          state.isOpen = obj.kind === "Door" ? obj.initialState === "OPEN" : false;
+          state.chalkCount = 0;
+          state.isLooted = false;
+          
+          info.interactables.set(obj.id.toString(), state);
+        }
+      }
+
+      // Move all players into the new world
+      for (const [sessionId, player] of this.state.players) {
+        let spawnPoint = this.getSpawnPoint(this.gameBoardId);
+        this.movePlayerToWorld(sessionId, player, this.gameBoardId, spawnPoint.x, spawnPoint.y);
+      }
     });
   }
 

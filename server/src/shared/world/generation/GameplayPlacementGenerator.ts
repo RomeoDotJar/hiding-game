@@ -1,12 +1,13 @@
 import { PRNG } from "../../PRNG.js";
 import type { MapGenerationConfig } from "./config/MapGenerationConfig.js";
-import type { TilePoint, TileRect } from "./types/MapGeometry.js";
+import type { TilePoint, TileRect } from "../MapGeometry.js";
 import type {
   GeneratedRoom,
   RoomSpecialRole,
 } from "./types/RoomTypes.js";
 import type { RoomConnection } from "./types/ConnectionTypes.js";
 import type {
+  ClosetOrientation,
   GeneratedChalkChest,
   GeneratedCloset,
   GeneratedDoor,
@@ -30,6 +31,10 @@ interface PlacementCandidate {
   height: number;
 }
 
+interface ClosetPlacementCandidate extends PlacementCandidate {
+  orientations: ClosetOrientation[];
+}
+
 const RITUAL_FOOTPRINT: Readonly<{ width: number; height: number }> = {
   width: 2,
   height: 2,
@@ -41,10 +46,12 @@ const RITUAL_FOOTPRINT: Readonly<{ width: number; height: number }> = {
  * Responsibilities:
  * - Select exactly the configured number of eligible Ritual rooms.
  * - Assign player and monster spawn rooms and positions.
- * - Generate one door at each end of every RoomConnection.
+ * - Generate at most one two-tile doorway per RoomConnection, but only where
+ *   the opening is flanked by solid wall tiles on both sides.
  * - Place one ritual altar in each Ritual room.
  * - Distribute chalk chests across regions around the Ritual rooms.
  * - Ensure every room is covered by a closet within coverageRadius graph hops.
+ * - Place closets directly beside solid walls, facing SOUTH, WEST, or EAST.
  * - Scale additional closets according to playerCount.
  *
  * This class does not create Tiled Objects and does not mutate TiledMap.
@@ -65,8 +72,10 @@ export class GameplayPlacementGenerator {
   /**
    * Creates all required gameplay placements for the supplied building.
    *
-   * RoomConnection doorways are treated as boundary spans. Two door objects
-   * are generated per connection: one at each connected room's doorway.
+   * One door is attempted per connection. The corridor centerline is tried
+   * first, followed by progressively nearer path positions. A door is only
+   * accepted if it occupies exactly two corridor tiles and solid walls flank
+   * the opening on both sides.
    */
   public generate(
     inputRooms: readonly GeneratedRoom[],
@@ -98,6 +107,11 @@ export class GameplayPlacementGenerator {
       });
     }
 
+    // Match TilemapAssembler's collision model: room and corridor cells are
+    // walkable; all other in-bounds cells are solid, with the map boundary
+    // explicitly treated as solid by TilemapAssembler as well.
+    const walkableCells = this.buildWalkableCells(rooms, connections);
+
     const objects: GeneratedGameplayObject[] = [];
     let nextObjectId = 1;
 
@@ -126,38 +140,30 @@ export class GameplayPlacementGenerator {
     );
     for (const room of monsterSpawnRooms) this.addRole(room, "MONSTER_SPAWN");
 
-    // 2. Create a door object at both room ends of every connection.
+    // 2. Create at most one properly flanked two-tile door per connection.
     if (this.config.interactables.doors) {
       for (const connection of [...connections].sort((a, b) => a.id - b.id)) {
-        for (const doorway of connection.doorways) {
-          const room = rooms.find((candidate) => candidate.id === doorway.roomId);
-          if (!room) {
-            throw new Error(
-              `GameplayPlacementGenerator: connection ${connection.id} references unknown room ${doorway.roomId}.`,
-            );
-          }
+        const placement = this.findConnectionDoorPlacement(
+          connection,
+          walkableCells,
+        );
+        if (!placement) continue;
 
-          const footprint = this.getDoorFootprint(
-            doorway.position,
-            doorway.orientation,
-            connection.width,
-          );
-          this.assertDoorwayFootprint(room, footprint, connection.id);
-          this.reservePlacement(roomStates.get(room.id)!, footprint);
-
-          const door: GeneratedDoor = {
-            id: nextObjectId++,
-            kind: "Door",
-            roomId: room.id,
-            connectionId: connection.id,
-            position: { ...doorway.position },
-            footprint,
-            orientation: doorway.orientation,
-            hinge: { ...doorway.position },
-            initialState: this.config.interactables.doors.initialState,
-          };
-          objects.push(door);
-        }
+        const door: GeneratedDoor = {
+          id: nextObjectId++,
+          kind: "Door",
+          // Associate the door with the nearer endpoint room for legacy type compatibility.
+          roomId: placement.pathIndex <= (connection.corridorPath.length - 1) / 2
+            ? connection.fromRoomId
+            : connection.toRoomId,
+          connectionId: connection.id,
+          position: { x: placement.footprint.x, y: placement.footprint.y },
+          footprint: placement.footprint,
+          orientation: placement.orientation,
+          hinge: { x: placement.footprint.x, y: placement.footprint.y },
+          initialState: this.config.interactables.doors.initialState,
+        };
+        objects.push(door);
       }
     }
 
@@ -257,7 +263,14 @@ export class GameplayPlacementGenerator {
 
     // 5. Place closets before optional extra clutter so coverage remains a
     // hard constraint and cannot be displaced by chest placement.
-    this.placeClosets(rooms, graph, roomStates, objects, () => nextObjectId++);
+    this.placeClosets(
+      rooms,
+      graph,
+      roomStates,
+      walkableCells,
+      objects,
+      () => nextObjectId++,
+    );
 
     // 6. Place the required chalk chests, balanced between the three Ritual
     // regions. Rooms with CHEST_ELIGIBLE are preferred; Ritual rooms are not
@@ -298,7 +311,7 @@ export class GameplayPlacementGenerator {
       throw new Error("GameplayPlacementGenerator: minMonsterPlayerSpawnDistance must be a non-negative integer.");
     }
     if (!Number.isInteger(closets.coverageRadius) || closets.coverageRadius < 0) {
-      throw new Error("GameplayPlacementGenerator: closet coverageRadius must be a non-negative integer.");
+      throw new Error("GameplayPlacementGenerator: coverageRadius must be a non-negative integer.");
     }
     if (!Number.isFinite(closets.additionalPerPlayer) || closets.additionalPerPlayer < 0) {
       throw new Error("GameplayPlacementGenerator: additionalPerPlayer must be non-negative.");
@@ -519,12 +532,16 @@ export class GameplayPlacementGenerator {
     rooms: readonly GeneratedRoom[],
     graph: RoomGraph,
     roomStates: ReadonlyMap<number, RoomPlacementState>,
+    walkableCells: ReadonlySet<number>,
     objects: GeneratedGameplayObject[],
     nextId: () => number,
   ): void {
     const eligible = rooms.filter((room) =>
       room.capabilities.includes("CLOSET_ELIGIBLE") &&
-      this.getAvailablePlacements(roomStates.get(room.id)!, 1, 1, true).length > 0,
+      this.getAvailableClosetPlacements(
+        roomStates.get(room.id)!,
+        walkableCells,
+      ).length > 0,
     );
     const radius = this.config.interactables.closets.coverageRadius;
     const uncovered = new Set(rooms.map((room) => room.id));
@@ -554,23 +571,21 @@ export class GameplayPlacementGenerator {
         throw new Error(
           "GameplayPlacementGenerator: closet coverage cannot be satisfied. " +
           `Uncovered room IDs: ${[...uncovered].sort((a, b) => a - b).join(", ")}. ` +
-          `No CLOSET_ELIGIBLE room with available space covers them within ${radius} graph edge(s).`,
+          `No CLOSET_ELIGIBLE room with an available wall-adjacent tile covers them within ${radius} graph edge(s).`,
         );
       }
 
       const selectedCandidate = bestCandidates[
         this.rng.nextInt(0, bestCandidates.length)
       ].room;
-      const placement = this.chooseRoomPlacement(
+      const placement = this.chooseClosetPlacement(
         roomStates.get(selectedCandidate.id)!,
-        1,
-        1,
-        true,
+        walkableCells,
       );
 
       if (!placement) {
         // The room was eligible during scoring but a previous placement may
-        // have consumed its last slot. Make it unavailable and retry.
+        // have consumed its last wall-adjacent slot. Make it unavailable and retry.
         const index = eligible.findIndex((room) => room.id === selectedCandidate.id);
         if (index >= 0) eligible.splice(index, 1);
         continue;
@@ -599,13 +614,16 @@ export class GameplayPlacementGenerator {
     // Extra closets are spread toward rooms farther from existing closets.
     while ([...closetCounts.values()].reduce((sum, count) => sum + count, 0) < targetCount) {
       const candidates = eligible.filter((room) =>
-        this.getAvailablePlacements(roomStates.get(room.id)!, 1, 1, true).length > 0,
+        this.getAvailableClosetPlacements(
+          roomStates.get(room.id)!,
+          walkableCells,
+        ).length > 0,
       );
 
       if (candidates.length === 0) {
         throw new Error(
           `GameplayPlacementGenerator: closet target ${targetCount} cannot be reached; ` +
-          "eligible rooms have no remaining interior placement cells.",
+          "eligible rooms have no remaining wall-adjacent placement cells.",
         );
       }
 
@@ -625,15 +643,13 @@ export class GameplayPlacementGenerator {
       }
 
       const chosen = bestCandidates[this.rng.nextInt(0, bestCandidates.length)];
-      const placement = this.chooseRoomPlacement(
+      const placement = this.chooseClosetPlacement(
         roomStates.get(chosen.id)!,
-        1,
-        1,
-        true,
+        walkableCells,
       );
       if (!placement) {
         throw new Error(
-          `GameplayPlacementGenerator: selected closet room ${chosen.id} has no remaining placement cell.`,
+          `GameplayPlacementGenerator: selected closet room ${chosen.id} has no remaining wall-adjacent placement cell.`,
         );
       }
 
@@ -920,18 +936,309 @@ export class GameplayPlacementGenerator {
     return candidates;
   }
 
+  /**
+   * Returns every available one-tile room position that touches a solid wall.
+   * Only SOUTH, WEST and EAST orientations are considered. The corresponding
+   * wall is behind the closet, so the closet faces away from that wall.
+   */
+  private getAvailableClosetPlacements(
+    state: RoomPlacementState,
+    walkableCells: ReadonlySet<number>,
+  ): ClosetPlacementCandidate[] {
+    const candidates: ClosetPlacementCandidate[] = [];
+    const visited = new Set<number>();
+
+    for (const point of state.room.footprint) {
+      const { x, y } = point;
+      const key = this.cellKey(x, y);
+
+      if (visited.has(key)) continue;
+      visited.add(key);
+
+      if (
+        !state.footprint.has(key) ||
+        state.reserved.has(key) ||
+        !this.isWalkableTile(x, y, walkableCells)
+      ) {
+        continue;
+      }
+
+      const orientations: ClosetOrientation[] = [];
+
+      // Wall to the north -> closet faces south.
+      if (this.isSolidTile(x, y - 1, walkableCells)) {
+        orientations.push("SOUTH");
+      }
+
+      // Wall to the east -> closet faces west.
+      if (this.isSolidTile(x + 1, y, walkableCells)) {
+        orientations.push("WEST");
+      }
+
+      // Wall to the west -> closet faces east.
+      if (this.isSolidTile(x - 1, y, walkableCells)) {
+        orientations.push("EAST");
+      }
+
+      if (orientations.length === 0) continue;
+
+      candidates.push({
+        x,
+        y,
+        width: 1,
+        height: 1,
+        orientations,
+      });
+    }
+
+    return candidates;
+  }
+
+  private chooseClosetPlacement(
+    state: RoomPlacementState,
+    walkableCells: ReadonlySet<number>,
+  ): ClosetPlacementCandidate | undefined {
+    const candidates = this.getAvailableClosetPlacements(
+      state,
+      walkableCells,
+    );
+
+    if (candidates.length === 0) return undefined;
+    return candidates[this.rng.nextInt(0, candidates.length)];
+  }
+
   private createCloset(
     id: number,
     roomId: number,
-    placement: PlacementCandidate,
+    placement: ClosetPlacementCandidate,
   ): GeneratedCloset {
+    const orientation = placement.orientations[
+      this.rng.nextInt(0, placement.orientations.length)
+    ];
+
     return {
       id,
       kind: "Closet",
       roomId,
       position: { x: placement.x, y: placement.y },
       footprint: this.toRect(placement),
+      orientation,
     };
+  }
+
+  /**
+   * Finds one corridor-sized door footprint for a connection. The midpoint is
+   * attempted first; remaining anchors are tested by increasing path distance.
+   * A door opening is always exactly two tiles wide.
+   */
+  private findConnectionDoorPlacement(
+    connection: RoomConnection,
+    walkableCells: ReadonlySet<number>,
+  ): {
+    footprint: TileRect;
+    orientation: "NORTH" | "EAST" | "SOUTH" | "WEST";
+    pathIndex: number;
+  } | null {
+    const path = connection.corridorPath;
+    if (path.length === 0 || connection.width !== 2) return null;
+
+    const corridorCells = this.getConnectionCorridorCells(connection);
+    const midpoint = (path.length - 1) / 2;
+    const candidateIndexes = path
+      .map((_, index) => index)
+      .sort((a, b) =>
+        Math.abs(a - midpoint) - Math.abs(b - midpoint) || a - b,
+      );
+
+    for (const pathIndex of candidateIndexes) {
+      // FIX 1: REJECT CORNERS. 
+      // A door cannot be placed at a turn. It must be on a straight path.
+      if (pathIndex > 0 && pathIndex < path.length - 1) {
+        const prev = path[pathIndex - 1];
+        const curr = path[pathIndex];
+        const next = path[pathIndex + 1];
+        
+        const incomingDx = curr.x - prev.x;
+        const incomingDy = curr.y - prev.y;
+        const outgoingDx = next.x - curr.x;
+        const outgoingDy = next.y - curr.y;
+
+        // If the path changes direction, this is a corner. Skip it.
+        if ((incomingDx !== 0 && outgoingDy !== 0) || (incomingDy !== 0 && outgoingDx !== 0)) {
+          continue;
+        }
+      }
+
+      // FIX 2: Use the incoming direction to determine orientation
+      const orientation = this.getDoorOrientationAtPathIndex(path, pathIndex);
+      const footprint = this.getDoorFootprint(path[pathIndex], orientation, 2);
+
+      let valid = true;
+      for (let y = footprint.y; y < footprint.y + footprint.height && valid; y++) {
+        for (let x = footprint.x; x < footprint.x + footprint.width; x++) {
+          if (
+            x < 0 || y < 0 || x >= this.width || y >= this.height ||
+            !corridorCells.has(this.cellKey(x, y)) ||
+            !this.isWalkableTile(x, y, walkableCells)
+          ) {
+            valid = false;
+            break;
+          }
+        }
+      }
+
+      if (!valid) continue;
+      if (!this.hasValidDoorwayWalls(footprint, orientation, walkableCells)) {
+        continue;
+      }
+
+      return { footprint, orientation, pathIndex };
+    }
+
+    return null;
+  }
+
+  private getDoorOrientationAtPathIndex(
+    path: readonly TilePoint[],
+    index: number,
+  ): "NORTH" | "EAST" | "SOUTH" | "WEST" {
+    // If it's the very first point, we look forward.
+    if (index === 0) {
+      const neighbor = path[1];
+      if (neighbor.x !== path[0].x) return "EAST";
+      return "SOUTH";
+    }
+    
+    // Otherwise, we look BACKWARDS to see where we came from.
+    // This ensures the door is perpendicular to the corridor we are traveling on.
+    const previous = path[index - 1];
+    const current = path[index];
+    
+    if (current.x !== previous.x) return "EAST"; // Moved horizontally, so door is vertical (EAST plane)
+    return "SOUTH"; // Moved vertically, so door is horizontal (SOUTH plane)
+  }
+
+  /**
+   * Checks the two solid wall cells flanking the doorway and confirms that
+   * the passage continues through the opening on both sides.
+   *
+   * EAST/WEST orientations use a vertical two-tile footprint. Its flanking
+   * walls are immediately north and south of that footprint.
+   * NORTH/SOUTH orientations use a horizontal two-tile footprint. Its
+   * flanking walls are immediately west and east of that footprint.
+   */
+  private hasValidDoorwayWalls(
+    footprint: TileRect,
+    orientation: "NORTH" | "EAST" | "SOUTH" | "WEST",
+    walkableCells: ReadonlySet<number>,
+  ): boolean {
+    if (footprint.width * footprint.height !== 2) return false;
+
+    if (orientation === "EAST" || orientation === "WEST") {
+      if (footprint.width !== 1 || footprint.height !== 2) return false;
+
+      const x = footprint.x;
+      const top = footprint.y;
+      const bottom = footprint.y + 1;
+
+      if (
+        !this.isSolidTile(x, top - 1, walkableCells) ||
+        !this.isSolidTile(x, bottom + 1, walkableCells)
+      ) {
+        return false;
+      }
+
+      for (let y = top; y <= bottom; y++) {
+        if (
+          !this.isWalkableTile(x - 1, y, walkableCells) ||
+          !this.isWalkableTile(x + 1, y, walkableCells)
+        ) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    if (footprint.width !== 2 || footprint.height !== 1) return false;
+
+    const left = footprint.x;
+    const right = footprint.x + 1;
+    const y = footprint.y;
+
+    if (
+      !this.isSolidTile(left - 1, y, walkableCells) ||
+      !this.isSolidTile(right + 1, y, walkableCells)
+    ) {
+      return false;
+    }
+
+    for (let x = left; x <= right; x++) {
+      if (
+        !this.isWalkableTile(x, y - 1, walkableCells) ||
+        !this.isWalkableTile(x, y + 1, walkableCells)
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /** Reconstructs the corridor footprint with ConnectivityGenerator's width-band convention. */
+  private getConnectionCorridorCells(connection: RoomConnection): Set<number> {
+    const path = connection.corridorPath;
+    const width = connection.width;
+    const cells = new Set<number>();
+    const add = (x: number, y: number): void => {
+      if (x >= 0 && y >= 0 && x < this.width && y < this.height) {
+        cells.add(this.cellKey(x, y));
+      }
+    };
+
+    if (path.length === 1) {
+      const orientation = connection.doorways[0]?.orientation ?? "NORTH";
+      const horizontalSpan = orientation === "NORTH" || orientation === "SOUTH";
+      for (let offset = 0; offset < width; offset++) {
+        add(
+          path[0].x + (horizontalSpan ? 0 : offset),
+          path[0].y + (horizontalSpan ? offset : 0),
+        );
+      }
+      return cells;
+    }
+
+    for (let i = 0; i < path.length - 1; i++) {
+      const a = path[i];
+      const b = path[i + 1];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      if (Math.abs(dx) + Math.abs(dy) !== 1) continue;
+
+      if (dx !== 0) {
+        for (let offset = 0; offset < width; offset++) {
+          add(a.x, a.y + offset);
+          add(b.x, b.y + offset);
+        }
+      } else {
+        for (let offset = 0; offset < width; offset++) {
+          add(a.x + offset, a.y);
+          add(b.x + offset, b.y);
+        }
+      }
+
+      if (i > 0) {
+        const previous = path[i - 1];
+        const previousDx = a.x - previous.x;
+        const previousDy = a.y - previous.y;
+        if ((previousDx === 0) !== (dx === 0)) {
+          for (let y = 0; y < width; y++) {
+            for (let x = 0; x < width; x++) add(a.x + x, a.y + y);
+          }
+        }
+      }
+    }
+    return cells;
   }
 
   private getDoorFootprint(
@@ -945,25 +1252,82 @@ export class GameplayPlacementGenerator {
     return { x: position.x, y: position.y, width: 1, height: width };
   }
 
-  private assertDoorwayFootprint(
-    room: GeneratedRoom,
-    footprint: TileRect,
-    connectionId: number,
-  ): void {
-    const roomTiles = new Set(room.footprint.map((point) => this.cellKey(point.x, point.y)));
-    for (let y = footprint.y; y < footprint.y + footprint.height; y++) {
-      for (let x = footprint.x; x < footprint.x + footprint.width; x++) {
-        if (!roomTiles.has(this.cellKey(x, y))) {
-          throw new Error(
-            `GameplayPlacementGenerator: connection ${connectionId} doorway footprint ` +
-            `(${x}, ${y}) is outside room ${room.id}. Check corridorWidth and DoorwayAnchor semantics.`,
-          );
-        }
+  /**
+   * Builds the map's walkable cell set from room and corridor footprints.
+   * This mirrors TilemapAssembler's geometry rules without depending on the
+   * assembled Tiled layers.
+   */
+  private buildWalkableCells(
+    rooms: readonly GeneratedRoom[],
+    connections: readonly RoomConnection[],
+  ): Set<number> {
+    const cells = new Set<number>();
+
+    for (const room of rooms) {
+      for (const point of room.footprint) {
+        cells.add(this.cellKey(point.x, point.y));
       }
     }
+
+    for (const connection of connections) {
+      for (const key of this.getConnectionCorridorCells(connection)) {
+        cells.add(key);
+      }
+    }
+
+    return cells;
   }
 
-  private reservePlacement(state: RoomPlacementState, placement: PlacementCandidate | TileRect): void {
+  private isMapBoundary(x: number, y: number): boolean {
+    return (
+      x === 0 ||
+      y === 0 ||
+      x === this.width - 1 ||
+      y === this.height - 1
+    );
+  }
+
+  private isWalkableTile(
+    x: number,
+    y: number,
+    walkableCells: ReadonlySet<number>,
+  ): boolean {
+    if (
+      x < 0 ||
+      y < 0 ||
+      x >= this.width ||
+      y >= this.height ||
+      this.isMapBoundary(x, y)
+    ) {
+      return false;
+    }
+
+    return walkableCells.has(this.cellKey(x, y));
+  }
+
+  private isSolidTile(
+    x: number,
+    y: number,
+    walkableCells: ReadonlySet<number>,
+  ): boolean {
+    if (
+      x < 0 ||
+      y < 0 ||
+      x >= this.width ||
+      y >= this.height
+    ) {
+      return false;
+    }
+
+    // TilemapAssembler marks every outer boundary cell as wall.
+    if (this.isMapBoundary(x, y)) return true;
+    return !walkableCells.has(this.cellKey(x, y));
+  }
+
+  private reservePlacement(
+    state: RoomPlacementState,
+    placement: PlacementCandidate | TileRect,
+  ): void {
     const x = placement.x;
     const y = placement.y;
     const width = placement.width;

@@ -24,8 +24,8 @@
             "scale": 4,
             "selectedLayer": 2,
             "viewCenter": {
-                "x": 119.875,
-                "y": 80.125
+                "x": 119.5,
+                "y": 79.75
             }
         },
         "dev/test.tmx": {
@@ -36,7 +36,7 @@
             "selectedLayer": 2,
             "viewCenter": {
                 "x": 110.5,
-                "y": 80.25
+                "y": 80.75
             }
         },
         "dev/test.tmx#tilemap_packed": {

@@ -1,4 +1,4 @@
-import type { TilePoint, TileRect } from "./MapGeometry.js";
+import type { TilePoint, TileRect } from "../../MapGeometry.js";
 
 /**
  * General gameplay category.

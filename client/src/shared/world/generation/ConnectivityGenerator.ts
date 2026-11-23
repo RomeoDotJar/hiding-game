@@ -1,6 +1,6 @@
 import { PRNG } from "../../PRNG.js";
 import type { MapGenerationConfig } from "./config/MapGenerationConfig.js";
-import type { CardinalDirection, TilePoint } from "./types/MapGeometry.js";
+import type { CardinalDirection, TilePoint } from "../MapGeometry.js";
 import type { DoorwayAnchor, RoomConnection } from "./types/ConnectionTypes.js";
 import type { GeneratedRoom } from "./types/RoomTypes.js";
 

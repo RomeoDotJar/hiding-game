@@ -33,7 +33,7 @@ export interface TiledLayer {
 export interface TiledLayerProperty {
   name: string;
   type: string;
-  value: any;
+  value: unknown;
 }
 
 export interface TiledObject {
@@ -54,7 +54,7 @@ export interface TiledObject {
   properties?: {
     name: string;
     type: string;
-    value: any;
+    value: unknown;
   }[];
 }
 

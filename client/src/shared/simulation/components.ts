@@ -30,8 +30,18 @@ export class ColliderComponent extends Component {
 @ECSComponent("InteractableComponent")
 export class InteractableComponent extends Component {
   constructor(
-    public interactType: string,
-    public radius: number = 12,
+    public type: "Chest" | "Ritual" | "Closet" | "Door" | "SpawnArea",
+    public id: number,
+  ) {
+    super();
+  }
+}
+
+@ECSComponent("DoorComponent")
+export class DoorComponent extends Component {
+  constructor(
+    public isOpen: boolean,
+    public orientation: "NORTH" | "EAST" | "SOUTH" | "WEST",
   ) {
     super();
   }

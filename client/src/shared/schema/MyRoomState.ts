@@ -25,12 +25,25 @@ export class Player extends Schema {
   @type("string") worldId: string = "Hub";
 }
 
+export class InteractableState extends Schema {
+  @type("string") id: string = "";
+  @type("string") type: string = ""; // "Door", "Chest", "Ritual", "Closet"
+
+  // States for different object types
+  @type("boolean") isOpen: boolean = false; // Used for Doors
+  @type("boolean") isLooted: boolean = false; // Used for Chests
+  @type("number") chalkCount: number = 0; // Used for Rituals
+}
+
 export class WorldInfo extends Schema {
   @type("string") type: string = "Hub"; // "Hub" | "GameBoard"
   @type("string") path: string = ""; // For static GameBoards
   @type("number") seed: number = 0; // For procedural GameBoards
   @type("number") width: number = 30;
   @type("number") height: number = 30;
+
+  @type({ map: InteractableState }) interactables =
+    new MapSchema<InteractableState>();
 }
 
 export class MyRoomState extends Schema {
