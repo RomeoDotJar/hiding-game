@@ -750,21 +750,20 @@ export class TilemapAssembler {
     }
   }
 
-  /* eslint-disable @typescript-eslint/no-unused-vars */
-  private assertUniqueTiledObjectIds(objects: readonly TiledObject[]): void {
-    const ids = new Set<number>();
+  // UNCOMMENT LATER WHEN THIS BECOMES NEEDED
+  // private assertUniqueTiledObjectIds(objects: readonly TiledObject[]): void {
+  //   const ids = new Set<number>();
 
-    for (const object of objects) {
-      if (ids.has(object.id)) {
-        throw new Error(
-          `TilemapAssembler: duplicate Tiled object ID ${object.id}.`,
-        );
-      }
+  //   for (const object of objects) {
+  //     if (ids.has(object.id)) {
+  //       throw new Error(
+  //         `TilemapAssembler: duplicate Tiled object ID ${object.id}.`,
+  //       );
+  //     }
 
-      ids.add(object.id);
-    }
-  }
-  /* eslint-enable @typescript-eslint/no-unused-vars */
+  //     ids.add(object.id);
+  //   }
+  // }
 
   private index(x: number, y: number): number {
     return y * this.width + x;
