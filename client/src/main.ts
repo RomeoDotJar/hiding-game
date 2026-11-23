@@ -30,7 +30,7 @@ import { GeneratedGameplayObject as GameplayObject } from "./shared/world/genera
 const debugUI = new DebugUI();
 
 async function updateUptime() {
-  if (USE_LOCALHOST) return;
+  if (USE_LOCALHOST && import.meta.env.DEV) return;
   try {
     const response = await fetch(`${PROXY_URL}/get-uptime`);
     const data = await response.json();
@@ -230,7 +230,7 @@ function initGame(app: Application, net: GameNetwork) {
     const myPing = room.clock.rtt();
     for (const [sessionId, player] of room.state.players) {
       const storedRemotePlayer = remotePlayers.get(sessionId);
-      if (storedRemotePlayer && player.worldId == worldId) {
+      if (storedRemotePlayer && player.worldId === lastKnownWorldId) {
         //const server_dt = (now - storedRemotePlayer.lastUpdateTime) / 1000;
 
         let deltaX = player.vx; //(player.x - storedRemotePlayer.lastServerX) / server_dt;
