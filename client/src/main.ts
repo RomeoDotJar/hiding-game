@@ -902,7 +902,7 @@ const FLIP_D = 0x20000000;
   );
   fogSprite = new Sprite(fogTexture);
   fogSprite.anchor = 0.5;
-  fogContainer.addChild(fogSprite);
+  fogContainer.addChildAt(fogSprite,0);
 
   document.getElementById("pixi-container")!.appendChild(app.canvas);
   debugUI.addField("Version", GAME_VERSION);
