@@ -80,6 +80,8 @@ let fogTexture: Texture;
 let fogSprite: Sprite;
 
 const resizeFogSprite = (t: number = 0) => {
+  if (!fogTexture)
+    return;
   const width = window.innerWidth;
   const height = window.innerHeight;
 
