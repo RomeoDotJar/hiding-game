@@ -20,7 +20,7 @@ import {
 import { TILE_HEIGHT, TILE_WIDTH } from "../world/MapGeometry.js";
 import { GeneratedGameplayObject as GameplayObject } from "../world/generation/types/GameplayTypes.js";
 import { MovementSystem } from "./systems/MovementSystem.js";
-import { CollisionLayer, DEFAULT_BULLET_COLLISIONS, DEFAULT_PLAYER_COLLISIONS } from "./collisionLayers.js";
+import { CollisionLayer, DEFAULT_PLAYER_COLLISIONS } from "./collisionLayers.js";
 
 // Renamed to SimWorld to avoid clashing with ESEngine's World class
 export interface SimWorld {

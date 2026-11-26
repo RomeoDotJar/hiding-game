@@ -22,7 +22,6 @@ import { GeneratedGameplayObject as GameplayObject } from "../world/generation/t
 import { MovementSystem } from "./systems/MovementSystem.js";
 import {
   CollisionLayer,
-  DEFAULT_BULLET_COLLISIONS,
   DEFAULT_PLAYER_COLLISIONS,
 } from "./collisionLayers.js";
 
