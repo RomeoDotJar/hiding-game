@@ -76,11 +76,12 @@ const debugContainer: Container = new Container();
 
 const fogContainer = new Container();
 
-const fogTexture = await Assets.load<Texture>(
+let fogTexture: Texture;
+let fogSprite: Sprite;
+fogTexture = await Assets.load<Texture>(
   "assets/sprites/vfx/bg/eyesbg_noise.png",
 );
-const fogSprite = new Sprite(fogTexture);
-fogSprite.anchor = 0.5;
+
 const resizeFogSprite = (t: number = 0) => {
   const width = window.innerWidth;
   const height = window.innerHeight;
@@ -98,8 +99,6 @@ const resizeFogSprite = (t: number = 0) => {
   fogSprite.scale.set(scaleX, scaleY);
 };
 resizeFogSprite();
-
-fogContainer.addChild(fogSprite);
 
 const visionRenderer = new VisionRenderer(fogContainer);
 const visionGraphics = visionRenderer.getGraphics();
@@ -898,6 +897,10 @@ const FLIP_D = 0x20000000;
   const app = new Application();
 
   await app.init({ background: "#1099bb", resizeTo: window });
+  
+  fogSprite = new Sprite(fogTexture);
+  fogSprite.anchor = 0.5;
+  fogContainer.addChild(fogSprite);
 
   document.getElementById("pixi-container")!.appendChild(app.canvas);
   debugUI.addField("Version", GAME_VERSION);
