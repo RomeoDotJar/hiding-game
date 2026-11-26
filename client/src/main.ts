@@ -78,9 +78,6 @@ const fogContainer = new Container();
 
 let fogTexture: Texture;
 let fogSprite: Sprite;
-fogTexture = await Assets.load<Texture>(
-  "assets/sprites/vfx/bg/eyesbg_noise.png",
-);
 
 const resizeFogSprite = (t: number = 0) => {
   const width = window.innerWidth;
@@ -898,6 +895,9 @@ const FLIP_D = 0x20000000;
 
   await app.init({ background: "#1099bb", resizeTo: window });
   
+  fogTexture = await Assets.load<Texture>(
+    "assets/sprites/vfx/bg/eyesbg_noise.png",
+  );
   fogSprite = new Sprite(fogTexture);
   fogSprite.anchor = 0.5;
   fogContainer.addChild(fogSprite);
