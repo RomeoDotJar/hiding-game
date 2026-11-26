@@ -273,16 +273,16 @@ export class ConnectivityGenerator {
       // Prevent multiple doors between the same rooms
       let alreadyThere = false;
       for (const conn of connections) {
-        if (conn.fromRoomId===roomA.id && conn.toRoomId===roomB.id ||
-          conn.fromRoomId===roomB.id && conn.toRoomId===roomA.id
+        if (
+          (conn.fromRoomId === roomA.id && conn.toRoomId === roomB.id) ||
+          (conn.fromRoomId === roomB.id && conn.toRoomId === roomA.id)
         ) {
           console.log(conn, roomA, roomB);
           alreadyThere = true;
           break;
         }
       }
-      if (alreadyThere)
-        continue;
+      if (alreadyThere) continue;
 
       const connection = this.createConnection(
         nextConnectionId++,
@@ -297,7 +297,7 @@ export class ConnectivityGenerator {
 
     // DEAD END PREVENTION
     const remainingLeaves = rooms.filter((r) => treeDegree.get(r.id) === 1);
-    
+
     for (const leaf of remainingLeaves) {
       // Check if it got fixed during this loop
       if ((treeDegree.get(leaf.id) ?? 0) > 1) continue;
@@ -305,11 +305,13 @@ export class ConnectivityGenerator {
       if (protectedDeadEndSet.has(leaf.id)) continue;
 
       // Find all valid candidate edges for this leaf, already sorted by distance
-      const leafCandidateEdges = edges.filter(e => {
+      const leafCandidateEdges = edges.filter((e) => {
         const roomA = rooms[e.aIndex];
         const roomB = rooms[e.bIndex];
-        return (roomA.id === leaf.id || roomB.id === leaf.id) &&
-          !treeEdges.has(edgeKey(roomA.id, roomB.id));
+        return (
+          (roomA.id === leaf.id || roomB.id === leaf.id) &&
+          !treeEdges.has(edgeKey(roomA.id, roomB.id))
+        );
       });
 
       for (const edge of leafCandidateEdges) {
@@ -320,8 +322,10 @@ export class ConnectivityGenerator {
         // Prevent multiple doors between the same rooms
         let alreadyThere = false;
         for (const conn of connections) {
-          if ((conn.fromRoomId === leaf.id && conn.toRoomId === otherRoom.id) ||
-              (conn.fromRoomId === otherRoom.id && conn.toRoomId === leaf.id)) {
+          if (
+            (conn.fromRoomId === leaf.id && conn.toRoomId === otherRoom.id) ||
+            (conn.fromRoomId === otherRoom.id && conn.toRoomId === leaf.id)
+          ) {
             alreadyThere = true;
             break;
           }
@@ -329,7 +333,12 @@ export class ConnectivityGenerator {
         if (alreadyThere) continue;
 
         // Try to route. This uses the exact same spatial constraints as the MST.
-        const route = this.tryRouteBetweenRooms(leaf, otherRoom, doorwaysByRoom, corridorCells);
+        const route = this.tryRouteBetweenRooms(
+          leaf,
+          otherRoom,
+          doorwaysByRoom,
+          corridorCells,
+        );
         if (!route) continue; // Routing failed due to geometry (no room for a corridor)
 
         // Successfully routed! Update degrees and add the connection.
@@ -345,9 +354,9 @@ export class ConnectivityGenerator {
         );
         connections.push(connection);
         this.addAdjacency(adjacency, leaf.id, otherRoom.id);
-        
+
         // We only need one extra edge to fix this leaf
-        break; 
+        break;
       }
     }
 
@@ -558,7 +567,13 @@ export class ConnectivityGenerator {
       );
 
       // Recheck the complete corridor footprint before reserving any cells.
-      if (!this.canCarveCells(corridorFootprint, [pair.to.roomId, pair.from.roomId])) continue;
+      if (
+        !this.canCarveCells(corridorFootprint, [
+          pair.to.roomId,
+          pair.from.roomId,
+        ])
+      )
+        continue;
 
       for (const point of corridorFootprint) {
         corridorCells[this.index(point.x, point.y)] = 1;
@@ -574,7 +589,7 @@ export class ConnectivityGenerator {
     return undefined;
   }
 
-    /**
+  /**
    * Uses Dijkstra's Algorithm with a turn penalty to find a path that prefers
    * long straight lines over zig-zags, resulting in clean L-shaped corridors.
    */
@@ -582,13 +597,26 @@ export class ConnectivityGenerator {
     from: DoorwayCandidate,
     to: DoorwayCandidate,
   ): TilePoint[] | undefined {
-    const startIndex = this.index(from.outsidePosition.x, from.outsidePosition.y);
+    const startIndex = this.index(
+      from.outsidePosition.x,
+      from.outsidePosition.y,
+    );
     const goalIndex = this.index(to.outsidePosition.x, to.outsidePosition.y);
     const startDirection = directionIndex(from.orientation);
-    const requiredFinalDirection = oppositeDirection(directionIndex(to.orientation));
+    const requiredFinalDirection = oppositeDirection(
+      directionIndex(to.orientation),
+    );
 
     if (startIndex === goalIndex) {
-      if (this.corridorWidth === 1 && startDirection === requiredFinalDirection && this.isRoutingInterior(from.outsidePosition.x, from.outsidePosition.y) && this.roomOwner[startIndex] === 0) {
+      if (
+        this.corridorWidth === 1 &&
+        startDirection === requiredFinalDirection &&
+        this.isRoutingInterior(
+          from.outsidePosition.x,
+          from.outsidePosition.y,
+        ) &&
+        this.roomOwner[startIndex] === 0
+      ) {
         return [{ ...from.outsidePosition }];
       }
       return undefined;
@@ -596,11 +624,11 @@ export class ConnectivityGenerator {
 
     const cellCount = this.width * this.height;
     const statesPerCell = 5;
-    
+
     // Track the cheapest cost to reach a state, and the previous state
     const costs = new Float32Array(cellCount * statesPerCell).fill(Infinity);
     const previousState = new Int32Array(cellCount * statesPerCell).fill(-1);
-    
+
     // Priority Queue (we simulate it with a simple array and sorting)
     const queue: { state: number; cost: number }[] = [];
 
@@ -610,10 +638,10 @@ export class ConnectivityGenerator {
     queue.push({ state: startState, cost: 0 });
 
     let finalState = -1;
-    
+
     // 🚀 The high turn cost forces the path to go straight
     const STRAIGHT_COST = 1;
-    const TURN_COST = 50; 
+    const TURN_COST = 50;
 
     while (queue.length > 0) {
       // Get the state with the lowest cost
@@ -631,42 +659,67 @@ export class ConnectivityGenerator {
       };
 
       // Are we at the goal?
-      if (currentCell === goalIndex && (previousDirection === requiredFinalDirection || previousDirection === NO_PREVIOUS_DIRECTION)) {
+      if (
+        currentCell === goalIndex &&
+        (previousDirection === requiredFinalDirection ||
+          previousDirection === NO_PREVIOUS_DIRECTION)
+      ) {
         finalState = currentState;
         break;
       }
 
-      const candidateDirections = previousDirection === NO_PREVIOUS_DIRECTION
+      const candidateDirections =
+        previousDirection === NO_PREVIOUS_DIRECTION
           ? [startDirection]
           : [0, 1, 2, 3]; // Don't randomize order, let the cost decide
 
       for (const nextDirection of candidateDirections) {
-        if (previousDirection !== NO_PREVIOUS_DIRECTION && nextDirection === oppositeDirection(previousDirection)) {
+        if (
+          previousDirection !== NO_PREVIOUS_DIRECTION &&
+          nextDirection === oppositeDirection(previousDirection)
+        ) {
           continue; // No 180 degree turns
         }
 
         const vector = DIRECTIONS[nextDirection];
-        const next: TilePoint = { x: current.x + vector.x, y: current.y + vector.y };
+        const next: TilePoint = {
+          x: current.x + vector.x,
+          y: current.y + vector.y,
+        };
 
         if (!this.isRoutingInterior(next.x, next.y)) continue;
 
         const nextCell = this.index(next.x, next.y);
-        if (nextCell === goalIndex && nextDirection !== requiredFinalDirection) {
+        if (
+          nextCell === goalIndex &&
+          nextDirection !== requiredFinalDirection
+        ) {
           continue;
         }
 
-        if (!this.canCarveTransition(current, next, previousDirection, nextDirection, [from.roomId, to.roomId])) {
+        if (
+          !this.canCarveTransition(
+            current,
+            next,
+            previousDirection,
+            nextDirection,
+            [from.roomId, to.roomId],
+          )
+        ) {
           continue;
         }
 
         const nextState = nextCell * statesPerCell + nextDirection;
-        
+
         // Calculate the cost of this move
         let moveCost = STRAIGHT_COST;
-        if (previousDirection !== NO_PREVIOUS_DIRECTION && nextDirection !== previousDirection) {
+        if (
+          previousDirection !== NO_PREVIOUS_DIRECTION &&
+          nextDirection !== previousDirection
+        ) {
           moveCost += TURN_COST; // Add penalty for turning
         }
-        
+
         const newCost = currentCost + moveCost;
 
         if (newCost < costs[nextState]) {
@@ -699,154 +752,12 @@ export class ConnectivityGenerator {
     return reversedPath;
   }
 
-  /**
-   * BFS over (tile, incoming direction) states. Every transition is checked
-   * against the full corridor-width footprint, so a path is never accepted
-   * merely because its one-tile centreline fits.
-   */
-  private findWidthAwarePathLegacy(
-    from: DoorwayCandidate,
-    to: DoorwayCandidate,
-  ): TilePoint[] | undefined {
-    const startIndex = this.index(
-      from.outsidePosition.x,
-      from.outsidePosition.y,
-    );
-    const goalIndex = this.index(to.outsidePosition.x, to.outsidePosition.y);
-    const startDirection = directionIndex(from.orientation);
-    const requiredFinalDirection = oppositeDirection(
-      directionIndex(to.orientation),
-    );
-
-    // Two rooms separated by a single free tile can connect directly when the
-    // configured corridor is one tile wide and their doors face one another.
-    if (startIndex === goalIndex) {
-      if (
-        this.corridorWidth === 1 &&
-        startDirection === requiredFinalDirection &&
-        this.isRoutingInterior(
-          from.outsidePosition.x,
-          from.outsidePosition.y,
-        ) &&
-        this.roomOwner[startIndex] === 0
-      ) {
-        return [{ ...from.outsidePosition }];
-      }
-      return undefined;
-    }
-
-    const cellCount = this.width * this.height;
-    const statesPerCell = 5;
-    const previousState = new Int32Array(cellCount * statesPerCell);
-    previousState.fill(-1);
-    const queue = new Int32Array(cellCount * statesPerCell);
-
-    const startState = startIndex * statesPerCell + NO_PREVIOUS_DIRECTION;
-    previousState[startState] = -2;
-
-    let head = 0;
-    let tail = 0;
-    queue[tail++] = startState;
-
-    const rotation = this.rng.nextInt(0, DIRECTIONS.length);
-    const directionOrder = DIRECTIONS.map(
-      (_, index) => (index + rotation) % DIRECTIONS.length,
-    );
-
-    let finalState = -1;
-
-    while (head < tail) {
-      const currentState = queue[head++];
-      const currentCell = Math.floor(currentState / statesPerCell);
-      const previousDirection = currentState % statesPerCell;
-      const current: TilePoint = {
-        x: currentCell % this.width,
-        y: Math.floor(currentCell / this.width),
-      };
-
-      const candidateDirections =
-        previousDirection === NO_PREVIOUS_DIRECTION
-          ? [startDirection]
-          : directionOrder;
-
-      for (const nextDirection of candidateDirections) {
-        if (
-          previousDirection !== NO_PREVIOUS_DIRECTION &&
-          nextDirection === oppositeDirection(previousDirection)
-        ) {
-          continue;
-        }
-
-        const vector = DIRECTIONS[nextDirection];
-        const next: TilePoint = {
-          x: current.x + vector.x,
-          y: current.y + vector.y,
-        };
-
-        if (!this.isRoutingInterior(next.x, next.y)) continue;
-
-        const nextCell = this.index(next.x, next.y);
-        if (
-          nextCell === goalIndex &&
-          nextDirection !== requiredFinalDirection
-        ) {
-          continue;
-        }
-
-        if (
-          !this.canCarveTransition(
-            current,
-            next,
-            previousDirection,
-            nextDirection,
-            [from.roomId, to.roomId]
-          )
-        ) {
-          continue;
-        }
-
-        const nextState = nextCell * statesPerCell + nextDirection;
-        if (previousState[nextState] !== -1) continue;
-
-        previousState[nextState] = currentState;
-        queue[tail++] = nextState;
-
-        if (nextCell === goalIndex) {
-          finalState = nextState;
-          break;
-        }
-      }
-
-      if (finalState !== -1) break;
-    }
-
-    if (finalState === -1) return undefined;
-
-    const reversedPath: TilePoint[] = [];
-    let state = finalState;
-
-    while (state >= 0) {
-      const cellIndex = Math.floor(state / statesPerCell);
-      reversedPath.push({
-        x: cellIndex % this.width,
-        y: Math.floor(cellIndex / this.width),
-      });
-
-      const previous = previousState[state];
-      if (previous === -2) break;
-      state = previous;
-    }
-
-    reversedPath.reverse();
-    return reversedPath;
-  }
-
   private canCarveTransition(
     current: TilePoint,
     next: TilePoint,
     previousDirection: number,
     nextDirection: number,
-    roomIds?: Array<number>
+    roomIds?: Array<number>,
   ): boolean {
     const cells: TilePoint[] = [];
     const direction = DIRECTIONS[nextDirection];
@@ -942,8 +853,10 @@ export class ConnectivityGenerator {
    * at least one solid tile between independent corridor footprints, so no
    * unplanned floor junction can appear outside a room.
    */
-  private canCarveCells(cells: readonly TilePoint[], roomIds?: Array<number>): boolean {
-    
+  private canCarveCells(
+    cells: readonly TilePoint[],
+    roomIds?: Array<number>,
+  ): boolean {
     for (const point of cells) {
       if (!this.isRoutingInterior(point.x, point.y)) return false;
 
@@ -951,11 +864,10 @@ export class ConnectivityGenerator {
         return false;
       }
 
-      for (let x=point.x-2; x<point.x+2; x++) {
-        for (let y=point.y-2; y<point.y+2; y++) {
+      for (let x = point.x - 2; x < point.x + 2; x++) {
+        for (let y = point.y - 2; y < point.y + 2; y++) {
           const ownerOfCell = this.roomOwner[this.index(x, y)];
-          if (roomIds && roomIds.find((v)=>v===ownerOfCell))
-            continue;
+          if (roomIds && roomIds.find((v) => v === ownerOfCell)) continue;
           if (ownerOfCell !== 0) {
             return false;
           }

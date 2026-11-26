@@ -12,7 +12,6 @@ import { applyInput } from "./shared/input/applyInput.js";
 import { LOCAL_URL, PROXY_URL, USE_LOCALHOST } from "./shared/constants.js";
 import { WorldMap } from "./shared/world/WorldMap.js";
 import { LoadedMapData, loadMapData } from "./shared/world/utils/load.js";
-import { SimulationEngine } from "./shared/simulation/SimulationEngine.js";
 //import { getMoveX, getMoveY, isInteractKeyPressed } from './input.js';
 
 const useLocalHost = USE_LOCALHOST && import.meta.env.DEV;
