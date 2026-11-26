@@ -48,10 +48,10 @@ window.addEventListener("keyup", (e) => {
 });
 
 // 1. Get X movement (-1, 0, or 1)
-export function getMoveX(spriteX: number, mapX: number): -1 | 0 | 1 {
+export function getMoveX(spriteX?: number, mapX?: number): -1 | 0 | 1 {
   let x: -1 | 0 | 1 = 0;
 
-  if (touchX !== -1) {
+  if (touchX !== -1 && spriteX && mapX) {
     const deltaFromSpriteX = touchX - spriteX - mapX;
 
     if (lastSpriteX === -1 || holding) lastSpriteX = spriteX + deltaFromSpriteX;
@@ -72,10 +72,10 @@ export function getMoveX(spriteX: number, mapX: number): -1 | 0 | 1 {
 }
 
 // 2. Get Y movement (-1, 0, or 1)
-export function getMoveY(spriteY: number, mapY: number): -1 | 0 | 1 {
+export function getMoveY(spriteY?: number, mapY?: number): -1 | 0 | 1 {
   let y: -1 | 0 | 1 = 0;
 
-  if (touchY !== -1) {
+  if (touchY !== -1 && spriteY && mapY) {
     const deltaFromSpriteY = touchY - spriteY - mapY;
 
     if (lastSpriteY === -1 || holding) lastSpriteY = spriteY + deltaFromSpriteY;
@@ -95,5 +95,5 @@ export function getMoveY(spriteY: number, mapY: number): -1 | 0 | 1 {
 
 // 3. Check for Interact key (E or Spacebar)
 export function isInteractKeyPressed(): boolean {
-  return keys["KeyE"] || keys["Space"] || false;
+  return keys["KeyE"] || keys["Space"];
 }

@@ -3,46 +3,50 @@ import { WorldInfo } from "../../schema/MyRoomState.js";
 import { TiledMap } from "../TiledMap.js";
 import { WorldMap } from "../WorldMap.js";
 import { generateGameBoard } from "../generateTest.js";
-import { autoTileWalls } from "../generation/AutoTiler.js";
 import { ConnectivityGenerator } from "../generation/ConnectivityGenerator.js";
 import { GameplayPlacementGenerator } from "../generation/GameplayPlacementGenerator.js";
-import { RoomGenerator } from "../generation/RoomGenerator.js";
 import { TilemapAssembler } from "../generation/TilemapAssembler.js";
 import { createMapGenerationConfig } from "../generation/config/DefaultConfig.js";
 import { GeneratedGameplayObject } from "../generation/types/GameplayTypes.js";
+import { GeneratedRoom } from "../generation/types/RoomTypes.js";
+import { generateRoomsDynamicSize } from "../generation/utils/MapGenerationUtils.js";
 import { parseTiledObjects } from "./parseTiledObjects.js";
 
 export interface LoadedMapData {
   worldMap?: WorldMap;
   gameplayObjects?: GeneratedGameplayObject[];
+  generatedRooms?: GeneratedRoom[];
 }
 
-export async function loadMapData(worldInfo: WorldInfo): Promise<LoadedMapData> {
+export async function loadMapData(
+  worldInfo: WorldInfo,
+): Promise<LoadedMapData> {
   if (worldInfo.type === "Hub") {
-    const response = await fetch(worldInfo.path ?? "assets/test..tmj");
+    const response = await fetch(worldInfo.path ?? "assets/hub.tmj");
     const mapData: TiledMap = await response.json();
 
     const hubWorld = new WorldMap(mapData);
     const gameplayObjects = parseTiledObjects(mapData);
 
     return { worldMap: hubWorld, gameplayObjects };
-
   } else if (worldInfo.type === "GameBoard") {
-    const roomRng = new PRNG(worldInfo.seed);
 
+    if (worldInfo.mapData && worldInfo.mapData.worldMap) {
+      return worldInfo.mapData;
+    }
+
+    const roomRng = new PRNG(worldInfo.seed);
     const config = createMapGenerationConfig();
-    const rooms = new RoomGenerator(config, roomRng).generate();
-    const connectivity = new ConnectivityGenerator(config, roomRng).generate(
+    const { rooms, dynamicConfig } = generateRoomsDynamicSize(config, worldInfo.seed);
+    
+    const connectivity = new ConnectivityGenerator(dynamicConfig, roomRng).generate(
       rooms,
     );
-    //const graph = new RoomGraph(rooms, connectivity.connections);
-
-    const placement = new GameplayPlacementGenerator(config, roomRng).generate(
+    const placement = new GameplayPlacementGenerator(dynamicConfig, roomRng).generate(
       rooms,
       connectivity.connections,
     );
-
-    const assembler = new TilemapAssembler(config, roomRng);
+    const assembler = new TilemapAssembler(dynamicConfig, roomRng);
 
     const tiledMap = assembler.assemble({
       rooms: placement.rooms,
@@ -50,11 +54,9 @@ export async function loadMapData(worldInfo: WorldInfo): Promise<LoadedMapData> 
       gameplay: placement,
     });
 
-    const finalMap = autoTileWalls(tiledMap);
+    const gbWorld = new WorldMap(tiledMap);
 
-    const gbWorld = new WorldMap(finalMap);
-    return { worldMap: gbWorld, gameplayObjects: placement.objects };
-
+    return { worldMap: gbWorld, gameplayObjects: placement.objects, generatedRooms: placement.rooms };
   } else if (worldInfo.type === "GameBoardDeprecated") {
     const mapData: TiledMap = generateGameBoard(worldInfo.seed);
 

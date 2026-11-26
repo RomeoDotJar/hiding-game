@@ -1,10 +1,7 @@
 import { PRNG } from "../../PRNG.js";
 import type { MapGenerationConfig } from "./config/MapGenerationConfig.js";
 import type { TilePoint, TileRect } from "../MapGeometry.js";
-import type {
-  GeneratedRoom,
-  RoomSpecialRole,
-} from "./types/RoomTypes.js";
+import type { GeneratedRoom, RoomSpecialRole } from "./types/RoomTypes.js";
 import type { RoomConnection } from "./types/ConnectionTypes.js";
 import type {
   ClosetOrientation,
@@ -82,7 +79,9 @@ export class GameplayPlacementGenerator {
     connections: readonly RoomConnection[],
   ): GameplayPlacementResult {
     if (inputRooms.length === 0) {
-      throw new Error("GameplayPlacementGenerator: at least one room is required.");
+      throw new Error(
+        "GameplayPlacementGenerator: at least one room is required.",
+      );
     }
 
     const rooms = inputRooms.map(cloneRoom);
@@ -92,9 +91,9 @@ export class GameplayPlacementGenerator {
       const components = graph.getConnectedComponents();
       throw new Error(
         "GameplayPlacementGenerator: gameplay placement requires a connected room graph. " +
-        `Found ${components.length} components: ${components
-          .map((component) => `[${component.join(", ")}]`)
-          .join(" ")}.`,
+          `Found ${components.length} components: ${components
+            .map((component) => `[${component.join(", ")}]`)
+            .join(" ")}.`,
       );
     }
 
@@ -102,7 +101,9 @@ export class GameplayPlacementGenerator {
     for (const room of rooms) {
       roomStates.set(room.id, {
         room,
-        footprint: new Set(room.footprint.map((point) => this.cellKey(point.x, point.y))),
+        footprint: new Set(
+          room.footprint.map((point) => this.cellKey(point.x, point.y)),
+        ),
         reserved: new Set<number>(),
       });
     }
@@ -153,9 +154,10 @@ export class GameplayPlacementGenerator {
           id: nextObjectId++,
           kind: "Door",
           // Associate the door with the nearer endpoint room for legacy type compatibility.
-          roomId: placement.pathIndex <= (connection.corridorPath.length - 1) / 2
-            ? connection.fromRoomId
-            : connection.toRoomId,
+          roomId:
+            placement.pathIndex <= (connection.corridorPath.length - 1) / 2
+              ? connection.fromRoomId
+              : connection.toRoomId,
           connectionId: connection.id,
           position: { x: placement.footprint.x, y: placement.footprint.y },
           footprint: placement.footprint,
@@ -181,7 +183,7 @@ export class GameplayPlacementGenerator {
       if (!placement) {
         throw new Error(
           `GameplayPlacementGenerator: Ritual room ${room.id} (${room.templateId}) ` +
-          "has no valid 2x2 interior footprint for its altar.",
+            "has no valid 2x2 interior footprint for its altar.",
         );
       }
 
@@ -214,7 +216,7 @@ export class GameplayPlacementGenerator {
       if (positions.length !== occupants) {
         throw new Error(
           `GameplayPlacementGenerator: player spawn room ${room.id} ` +
-          `cannot fit ${occupants} distinct spawn positions.`,
+            `cannot fit ${occupants} distinct spawn positions.`,
         );
       }
 
@@ -292,37 +294,88 @@ export class GameplayPlacementGenerator {
     const spawns = this.config.spawns;
     const closets = this.config.interactables.closets;
 
-    if (!Number.isInteger(objectives.ritualRoomCount) || objectives.ritualRoomCount < 1) {
-      throw new Error("GameplayPlacementGenerator: ritualRoomCount must be a positive integer.");
+    if (
+      !Number.isInteger(objectives.ritualRoomCount) ||
+      objectives.ritualRoomCount < 1
+    ) {
+      throw new Error(
+        "GameplayPlacementGenerator: ritualRoomCount must be a positive integer.",
+      );
     }
-    if (!Number.isInteger(objectives.chalkPerRitual) || objectives.chalkPerRitual < 1) {
-      throw new Error("GameplayPlacementGenerator: chalkPerRitual must be a positive integer.");
+    if (
+      !Number.isInteger(objectives.chalkPerRitual) ||
+      objectives.chalkPerRitual < 1
+    ) {
+      throw new Error(
+        "GameplayPlacementGenerator: chalkPerRitual must be a positive integer.",
+      );
     }
-    if (!Number.isInteger(objectives.extraChalkChests) || objectives.extraChalkChests < 0) {
-      throw new Error("GameplayPlacementGenerator: extraChalkChests must be a non-negative integer.");
+    if (
+      !Number.isInteger(objectives.extraChalkChests) ||
+      objectives.extraChalkChests < 0
+    ) {
+      throw new Error(
+        "GameplayPlacementGenerator: extraChalkChests must be a non-negative integer.",
+      );
     }
-    if (!Number.isInteger(spawns.playerSpawnRoomCapacity) || spawns.playerSpawnRoomCapacity < 1) {
-      throw new Error("GameplayPlacementGenerator: playerSpawnRoomCapacity must be a positive integer.");
+    if (
+      !Number.isInteger(spawns.playerSpawnRoomCapacity) ||
+      spawns.playerSpawnRoomCapacity < 1
+    ) {
+      throw new Error(
+        "GameplayPlacementGenerator: playerSpawnRoomCapacity must be a positive integer.",
+      );
     }
-    if (!Number.isInteger(spawns.monsterSpawnRoomCount) || spawns.monsterSpawnRoomCount < 1) {
-      throw new Error("GameplayPlacementGenerator: monsterSpawnRoomCount must be a positive integer.");
+    if (
+      !Number.isInteger(spawns.monsterSpawnRoomCount) ||
+      spawns.monsterSpawnRoomCount < 1
+    ) {
+      throw new Error(
+        "GameplayPlacementGenerator: monsterSpawnRoomCount must be a positive integer.",
+      );
     }
-    if (!Number.isInteger(spawns.minMonsterPlayerSpawnDistance) || spawns.minMonsterPlayerSpawnDistance < 0) {
-      throw new Error("GameplayPlacementGenerator: minMonsterPlayerSpawnDistance must be a non-negative integer.");
+    if (
+      !Number.isInteger(spawns.minMonsterPlayerSpawnDistance) ||
+      spawns.minMonsterPlayerSpawnDistance < 0
+    ) {
+      throw new Error(
+        "GameplayPlacementGenerator: minMonsterPlayerSpawnDistance must be a non-negative integer.",
+      );
     }
-    if (!Number.isInteger(closets.coverageRadius) || closets.coverageRadius < 0) {
-      throw new Error("GameplayPlacementGenerator: coverageRadius must be a non-negative integer.");
+    if (
+      !Number.isInteger(closets.coverageRadius) ||
+      closets.coverageRadius < 0
+    ) {
+      throw new Error(
+        "GameplayPlacementGenerator: coverageRadius must be a non-negative integer.",
+      );
     }
-    if (!Number.isFinite(closets.additionalPerPlayer) || closets.additionalPerPlayer < 0) {
-      throw new Error("GameplayPlacementGenerator: additionalPerPlayer must be non-negative.");
+    if (
+      !Number.isFinite(closets.additionalPerPlayer) ||
+      closets.additionalPerPlayer < 0
+    ) {
+      throw new Error(
+        "GameplayPlacementGenerator: additionalPerPlayer must be non-negative.",
+      );
     }
-    if (!Number.isInteger(this.width) || this.width < 1 ||
-        !Number.isInteger(this.height) || this.height < 1) {
-      throw new Error("GameplayPlacementGenerator: map dimensions must be positive integers.");
+    if (
+      !Number.isInteger(this.width) ||
+      this.width < 1 ||
+      !Number.isInteger(this.height) ||
+      this.height < 1
+    ) {
+      throw new Error(
+        "GameplayPlacementGenerator: map dimensions must be positive integers.",
+      );
     }
-    if (!Number.isInteger(this.config.playerCount) ||
-        this.config.playerCount < 1 || this.config.playerCount > 4) {
-      throw new Error("GameplayPlacementGenerator: playerCount must be an integer from 1 to 4.");
+    if (
+      !Number.isInteger(this.config.playerCount) ||
+      this.config.playerCount < 1 ||
+      this.config.playerCount > 4
+    ) {
+      throw new Error(
+        "GameplayPlacementGenerator: playerCount must be an integer from 1 to 4.",
+      );
     }
   }
 
@@ -338,7 +391,7 @@ export class GameplayPlacementGenerator {
     if (candidates.length < count) {
       throw new Error(
         `GameplayPlacementGenerator: ${count} Ritual rooms are required, but only ` +
-        `${candidates.length} rooms have RITUAL_ELIGIBLE.`,
+          `${candidates.length} rooms have RITUAL_ELIGIBLE.`,
       );
     }
 
@@ -364,7 +417,9 @@ export class GameplayPlacementGenerator {
 
       for (const candidate of pool) {
         const minimumDistance = Math.min(
-          ...selected.map((room) => graph.getShortestPathLength(candidate.id, room.id)),
+          ...selected.map((room) =>
+            graph.getShortestPathLength(candidate.id, room.id),
+          ),
         );
 
         if (minimumDistance > bestScore) {
@@ -381,9 +436,13 @@ export class GameplayPlacementGenerator {
         );
       }
 
-      const selectedRoom = bestCandidates[this.rng.nextInt(0, bestCandidates.length)];
+      const selectedRoom =
+        bestCandidates[this.rng.nextInt(0, bestCandidates.length)];
       selected.push(selectedRoom);
-      pool.splice(pool.findIndex((room) => room.id === selectedRoom.id), 1);
+      pool.splice(
+        pool.findIndex((room) => room.id === selectedRoom.id),
+        1,
+      );
     }
 
     return selected;
@@ -396,18 +455,19 @@ export class GameplayPlacementGenerator {
     count: number,
     playerCount: number,
   ): GeneratedRoom[] {
-    const candidates = rooms.filter((room) =>
-      !excludedRoomIds.has(room.id) &&
-      room.capabilities.includes("PLAYER_SPAWN_ELIGIBLE") &&
-      this.getAvailablePlacements(
-        this.createRoomState(room), 1, 1, true,
-      ).length >= Math.min(this.config.spawns.playerSpawnRoomCapacity, playerCount),
+    const candidates = rooms.filter(
+      (room) =>
+        !excludedRoomIds.has(room.id) &&
+        room.capabilities.includes("PLAYER_SPAWN_ELIGIBLE") &&
+        this.getAvailablePlacements(this.createRoomState(room), 1, 1, true)
+          .length >=
+          Math.min(this.config.spawns.playerSpawnRoomCapacity, playerCount),
     );
 
     if (candidates.length < count) {
       throw new Error(
         `GameplayPlacementGenerator: ${count} player spawn rooms are required, ` +
-        `but only ${candidates.length} eligible rooms have sufficient interior space.`,
+          `but only ${candidates.length} eligible rooms have sufficient interior space.`,
       );
     }
 
@@ -428,7 +488,9 @@ export class GameplayPlacementGenerator {
 
       for (const candidate of shuffled) {
         const nearestDistance = Math.min(
-          ...selected.map((room) => graph.getShortestPathLength(candidate.id, room.id)),
+          ...selected.map((room) =>
+            graph.getShortestPathLength(candidate.id, room.id),
+          ),
         );
         if (nearestDistance < bestScore) {
           bestScore = nearestDistance;
@@ -441,11 +503,16 @@ export class GameplayPlacementGenerator {
       if (bestCandidates.length === 0 || !Number.isFinite(bestScore)) break;
       const chosen = bestCandidates[this.rng.nextInt(0, bestCandidates.length)];
       selected.push(chosen);
-      shuffled.splice(shuffled.findIndex((room) => room.id === chosen.id), 1);
+      shuffled.splice(
+        shuffled.findIndex((room) => room.id === chosen.id),
+        1,
+      );
     }
 
     if (selected.length !== count) {
-      throw new Error("GameplayPlacementGenerator: unable to select distinct player spawn rooms.");
+      throw new Error(
+        "GameplayPlacementGenerator: unable to select distinct player spawn rooms.",
+      );
     }
 
     return selected;
@@ -456,39 +523,52 @@ export class GameplayPlacementGenerator {
     graph: RoomGraph,
     excludedRoomIds: ReadonlySet<number>,
   ): GeneratedRoom[] {
-    const candidates = rooms.filter((room) =>
-      !excludedRoomIds.has(room.id) &&
-      room.capabilities.includes("MONSTER_SPAWN_ELIGIBLE") &&
-      this.getAvailablePlacements(this.createRoomState(room), 1, 1, true).length > 0,
+    const candidates = rooms.filter(
+      (room) =>
+        !excludedRoomIds.has(room.id) &&
+        room.capabilities.includes("MONSTER_SPAWN_ELIGIBLE") &&
+        this.getAvailablePlacements(this.createRoomState(room), 1, 1, true)
+          .length > 0,
     );
     const required = this.config.spawns.monsterSpawnRoomCount;
 
     if (candidates.length < required) {
       throw new Error(
         `GameplayPlacementGenerator: ${required} monster spawn rooms are required, ` +
-        `but only ${candidates.length} eligible rooms are available after excluding Ritual and player spawn rooms.`,
+          `but only ${candidates.length} eligible rooms are available after excluding Ritual and player spawn rooms.`,
       );
     }
 
     const minDistance = this.config.spawns.minMonsterPlayerSpawnDistance;
-    const playerRooms = rooms.filter((room) => room.specialRoles.includes("PLAYER_SPAWN"));
+    const playerRooms = rooms.filter((room) =>
+      room.specialRoles.includes("PLAYER_SPAWN"),
+    );
     const feasible = candidates.filter((candidate) =>
-      playerRooms.every((playerRoom) => graph.getDistance(candidate.id, playerRoom.id) >= minDistance),
+      playerRooms.every(
+        (playerRoom) =>
+          graph.getDistance(candidate.id, playerRoom.id) >= minDistance,
+      ),
     );
 
     if (feasible.length < required) {
-      const bestAvailableDistance = candidates.reduce((best, candidate) =>
-        Math.max(
-          best,
-          Math.min(...playerRooms.map((playerRoom) => graph.getDistance(candidate.id, playerRoom.id))),
-        ),
-      Number.NEGATIVE_INFINITY);
+      const bestAvailableDistance = candidates.reduce(
+        (best, candidate) =>
+          Math.max(
+            best,
+            Math.min(
+              ...playerRooms.map((playerRoom) =>
+                graph.getDistance(candidate.id, playerRoom.id),
+              ),
+            ),
+          ),
+        Number.NEGATIVE_INFINITY,
+      );
 
       throw new Error(
         `GameplayPlacementGenerator: cannot place ${required} monster spawn room(s) at least ` +
-        `${minDistance} graph edge(s) from every player spawn room. ` +
-        `Best available minimum distance is ${bestAvailableDistance}. ` +
-        "Reduce minMonsterPlayerSpawnDistance, change spawn-eligible templates, or regenerate the building.",
+          `${minDistance} graph edge(s) from every player spawn room. ` +
+          `Best available minimum distance is ${bestAvailableDistance}. ` +
+          "Reduce minMonsterPlayerSpawnDistance, change spawn-eligible templates, or regenerate the building.",
       );
     }
 
@@ -501,11 +581,18 @@ export class GameplayPlacementGenerator {
 
       for (const candidate of pool) {
         const playerDistance = Math.min(
-          ...playerRooms.map((room) => graph.getDistance(candidate.id, room.id)),
+          ...playerRooms.map((room) =>
+            graph.getDistance(candidate.id, room.id),
+          ),
         );
-        const selectedMonsterDistance = selected.length === 0
-          ? Number.POSITIVE_INFINITY
-          : Math.min(...selected.map((room) => graph.getDistance(candidate.id, room.id)));
+        const selectedMonsterDistance =
+          selected.length === 0
+            ? Number.POSITIVE_INFINITY
+            : Math.min(
+                ...selected.map((room) =>
+                  graph.getDistance(candidate.id, room.id),
+                ),
+              );
         const score = Math.min(playerDistance, selectedMonsterDistance);
 
         if (score > bestScore) {
@@ -517,12 +604,17 @@ export class GameplayPlacementGenerator {
       }
 
       if (bestCandidates.length === 0) {
-        throw new Error("GameplayPlacementGenerator: unable to select monster spawn rooms.");
+        throw new Error(
+          "GameplayPlacementGenerator: unable to select monster spawn rooms.",
+        );
       }
 
       const chosen = bestCandidates[this.rng.nextInt(0, bestCandidates.length)];
       selected.push(chosen);
-      pool.splice(pool.findIndex((room) => room.id === chosen.id), 1);
+      pool.splice(
+        pool.findIndex((room) => room.id === chosen.id),
+        1,
+      );
     }
 
     return selected;
@@ -536,12 +628,13 @@ export class GameplayPlacementGenerator {
     objects: GeneratedGameplayObject[],
     nextId: () => number,
   ): void {
-    const eligible = rooms.filter((room) =>
-      room.capabilities.includes("CLOSET_ELIGIBLE") &&
-      this.getAvailableClosetPlacements(
-        roomStates.get(room.id)!,
-        walkableCells,
-      ).length > 0,
+    const eligible = rooms.filter(
+      (room) =>
+        room.capabilities.includes("CLOSET_ELIGIBLE") &&
+        this.getAvailableClosetPlacements(
+          roomStates.get(room.id)!,
+          walkableCells,
+        ).length > 0,
     );
     const radius = this.config.interactables.closets.coverageRadius;
     const uncovered = new Set(rooms.map((room) => room.id));
@@ -551,7 +644,8 @@ export class GameplayPlacementGenerator {
     // Greedy set cover: each selected closet room covers itself and all rooms
     // at graph distance <= coverageRadius.
     while (uncovered.size > 0) {
-      let bestCandidates: Array<{ room: GeneratedRoom; covered: number[] }> = [];
+      let bestCandidates: Array<{ room: GeneratedRoom; covered: number[] }> =
+        [];
       let bestScore = 0;
 
       for (const candidate of eligible) {
@@ -570,14 +664,13 @@ export class GameplayPlacementGenerator {
       if (bestCandidates.length === 0) {
         throw new Error(
           "GameplayPlacementGenerator: closet coverage cannot be satisfied. " +
-          `Uncovered room IDs: ${[...uncovered].sort((a, b) => a - b).join(", ")}. ` +
-          `No CLOSET_ELIGIBLE room with an available wall-adjacent tile covers them within ${radius} graph edge(s).`,
+            `Uncovered room IDs: ${[...uncovered].sort((a, b) => a - b).join(", ")}. ` +
+            `No CLOSET_ELIGIBLE room with an available wall-adjacent tile covers them within ${radius} graph edge(s).`,
         );
       }
 
-      const selectedCandidate = bestCandidates[
-        this.rng.nextInt(0, bestCandidates.length)
-      ].room;
+      const selectedCandidate =
+        bestCandidates[this.rng.nextInt(0, bestCandidates.length)].room;
       const placement = this.chooseClosetPlacement(
         roomStates.get(selectedCandidate.id)!,
         walkableCells,
@@ -586,13 +679,17 @@ export class GameplayPlacementGenerator {
       if (!placement) {
         // The room was eligible during scoring but a previous placement may
         // have consumed its last wall-adjacent slot. Make it unavailable and retry.
-        const index = eligible.findIndex((room) => room.id === selectedCandidate.id);
+        const index = eligible.findIndex(
+          (room) => room.id === selectedCandidate.id,
+        );
         if (index >= 0) eligible.splice(index, 1);
         continue;
       }
 
       this.reservePlacement(roomStates.get(selectedCandidate.id)!, placement);
-      objects.push(this.createCloset(nextId(), selectedCandidate.id, placement));
+      objects.push(
+        this.createCloset(nextId(), selectedCandidate.id, placement),
+      );
       closetCounts.set(selectedCandidate.id, 1);
       selectedRooms.push(selectedCandidate);
 
@@ -605,25 +702,29 @@ export class GameplayPlacementGenerator {
 
     const baseCount = selectedRooms.length;
     const targetCount = Math.ceil(
-      baseCount * (
-        1 + this.config.interactables.closets.additionalPerPlayer *
-        (this.config.playerCount - 1)
-      ),
+      baseCount *
+        (1 +
+          this.config.interactables.closets.additionalPerPlayer *
+            (this.config.playerCount - 1)),
     );
 
     // Extra closets are spread toward rooms farther from existing closets.
-    while ([...closetCounts.values()].reduce((sum, count) => sum + count, 0) < targetCount) {
-      const candidates = eligible.filter((room) =>
-        this.getAvailableClosetPlacements(
-          roomStates.get(room.id)!,
-          walkableCells,
-        ).length > 0,
+    while (
+      [...closetCounts.values()].reduce((sum, count) => sum + count, 0) <
+      targetCount
+    ) {
+      const candidates = eligible.filter(
+        (room) =>
+          this.getAvailableClosetPlacements(
+            roomStates.get(room.id)!,
+            walkableCells,
+          ).length > 0,
       );
 
       if (candidates.length === 0) {
         throw new Error(
           `GameplayPlacementGenerator: closet target ${targetCount} cannot be reached; ` +
-          "eligible rooms have no remaining wall-adjacent placement cells.",
+            "eligible rooms have no remaining wall-adjacent placement cells.",
         );
       }
 
@@ -631,9 +732,13 @@ export class GameplayPlacementGenerator {
       let bestCandidates: GeneratedRoom[] = [];
       for (const candidate of candidates) {
         const nearestClosetRoomDistance = Math.min(
-          ...selectedRooms.map((room) => graph.getDistance(candidate.id, room.id)),
+          ...selectedRooms.map((room) =>
+            graph.getDistance(candidate.id, room.id),
+          ),
         );
-        const score = nearestClosetRoomDistance - (closetCounts.get(candidate.id) ?? 0) * 0.01;
+        const score =
+          nearestClosetRoomDistance -
+          (closetCounts.get(candidate.id) ?? 0) * 0.01;
         if (score > bestScore) {
           bestScore = score;
           bestCandidates = [candidate];
@@ -671,32 +776,35 @@ export class GameplayPlacementGenerator {
     nextId: () => number,
   ): void {
     const chestCount =
-      ritualRooms.length *
-      this.config.objectives.chalkPerRitual +
+      ritualRooms.length * this.config.objectives.chalkPerRitual +
       this.config.objectives.extraChalkChests;
 
     if (chestCount === 0) return;
 
     const ritualRoomIds = new Set(ritualRooms.map((room) => room.id));
-    const allEligibleRooms = rooms.filter((room) =>
-      !ritualRoomIds.has(room.id) &&
-      room.capabilities.includes("CHEST_ELIGIBLE") &&
-      this.getAvailablePlacements(roomStates.get(room.id)!, 1, 1, true).length > 0,
+    const allEligibleRooms = rooms.filter(
+      (room) =>
+        !ritualRoomIds.has(room.id) &&
+        room.capabilities.includes("CHEST_ELIGIBLE") &&
+        this.getAvailablePlacements(roomStates.get(room.id)!, 1, 1, true)
+          .length > 0,
     );
     const nonSpawnEligibleRooms = allEligibleRooms.filter(
-      (room) => !room.specialRoles.includes("PLAYER_SPAWN") &&
+      (room) =>
+        !room.specialRoles.includes("PLAYER_SPAWN") &&
         !room.specialRoles.includes("MONSTER_SPAWN"),
     );
     // Prefer not to place objective resources directly in spawn rooms. Spawn
     // rooms remain a fallback if the rest of the map has insufficient capacity.
-    const eligibleRooms = nonSpawnEligibleRooms.length > 0
-      ? nonSpawnEligibleRooms
-      : allEligibleRooms;
+    const eligibleRooms =
+      nonSpawnEligibleRooms.length > 0
+        ? nonSpawnEligibleRooms
+        : allEligibleRooms;
 
     if (eligibleRooms.length === 0) {
       throw new Error(
         `GameplayPlacementGenerator: ${chestCount} chalk chests are required, ` +
-        "but no non-Ritual room has CHEST_ELIGIBLE and an available interior tile.",
+          "but no non-Ritual room has CHEST_ELIGIBLE and an available interior tile.",
       );
     }
 
@@ -723,9 +831,8 @@ export class GameplayPlacementGenerator {
         );
       }
 
-      const nearestRitual = nearestRituals[
-        this.rng.nextInt(0, nearestRituals.length)
-      ];
+      const nearestRitual =
+        nearestRituals[this.rng.nextInt(0, nearestRituals.length)];
       roomRegion.set(room.id, nearestRitual.id);
     }
 
@@ -751,14 +858,16 @@ export class GameplayPlacementGenerator {
     for (const regionId of regions) {
       const quota = chestQuota.get(regionId) ?? 0;
       for (let placed = 0; placed < quota; placed++) {
-        const availableRooms = eligibleRooms.filter((room) =>
-          this.getAvailablePlacements(roomStates.get(room.id)!, 1, 1, true).length > 0,
+        const availableRooms = eligibleRooms.filter(
+          (room) =>
+            this.getAvailablePlacements(roomStates.get(room.id)!, 1, 1, true)
+              .length > 0,
         );
 
         if (availableRooms.length === 0) {
           throw new Error(
             `GameplayPlacementGenerator: could fit only ${placed} of ${quota} chalk chests ` +
-            `for Ritual region ${regionId}; no CHEST_ELIGIBLE interior cells remain.`,
+              `for Ritual region ${regionId}; no CHEST_ELIGIBLE interior cells remain.`,
           );
         }
 
@@ -775,9 +884,8 @@ export class GameplayPlacementGenerator {
         const localLeastUsedRooms = leastUsedRooms.filter(
           (room) => roomRegion.get(room.id) === regionId,
         );
-        const candidates = localLeastUsedRooms.length > 0
-          ? localLeastUsedRooms
-          : leastUsedRooms;
+        const candidates =
+          localLeastUsedRooms.length > 0 ? localLeastUsedRooms : leastUsedRooms;
         let nearestDistance = Number.POSITIVE_INFINITY;
         let nearestRooms: GeneratedRoom[] = [];
         for (const room of candidates) {
@@ -876,8 +984,10 @@ export class GameplayPlacementGenerator {
         let bestCandidates: PlacementCandidate[] = [];
         for (const candidate of candidates) {
           const minimumDistance = Math.min(
-            ...selected.map((point) =>
-              Math.abs(candidate.x - point.x) + Math.abs(candidate.y - point.y),
+            ...selected.map(
+              (point) =>
+                Math.abs(candidate.x - point.x) +
+                Math.abs(candidate.y - point.y),
             ),
           );
           if (minimumDistance > bestDistance) {
@@ -911,7 +1021,11 @@ export class GameplayPlacementGenerator {
         let valid = true;
 
         const margin = requireOneTileInteriorMargin ? 1 : 0;
-        for (let checkY = y - margin; checkY < y + height + margin && valid; checkY++) {
+        for (
+          let checkY = y - margin;
+          checkY < y + height + margin && valid;
+          checkY++
+        ) {
           for (let checkX = x - margin; checkX < x + width + margin; checkX++) {
             if (!state.footprint.has(this.cellKey(checkX, checkY))) {
               valid = false;
@@ -998,10 +1112,7 @@ export class GameplayPlacementGenerator {
     state: RoomPlacementState,
     walkableCells: ReadonlySet<number>,
   ): ClosetPlacementCandidate | undefined {
-    const candidates = this.getAvailableClosetPlacements(
-      state,
-      walkableCells,
-    );
+    const candidates = this.getAvailableClosetPlacements(state, walkableCells);
 
     if (candidates.length === 0) return undefined;
     return candidates[this.rng.nextInt(0, candidates.length)];
@@ -1012,9 +1123,10 @@ export class GameplayPlacementGenerator {
     roomId: number,
     placement: ClosetPlacementCandidate,
   ): GeneratedCloset {
-    const orientation = placement.orientations[
-      this.rng.nextInt(0, placement.orientations.length)
-    ];
+    const orientation =
+      placement.orientations[
+        this.rng.nextInt(0, placement.orientations.length)
+      ];
 
     return {
       id,
@@ -1040,44 +1152,51 @@ export class GameplayPlacementGenerator {
     pathIndex: number;
   } | null {
     const path = connection.corridorPath;
-    if (path.length === 0 || connection.width !== 2) return null;
+    if (path.length === 0 || connection.width !== this.config.connectivity.corridorWidth) return null;
 
     const corridorCells = this.getConnectionCorridorCells(connection);
     const midpoint = (path.length - 1) / 2;
     const candidateIndexes = path
       .map((_, index) => index)
-      .sort((a, b) =>
-        Math.abs(a - midpoint) - Math.abs(b - midpoint) || a - b,
-      );
+      .sort((a, b) => Math.abs(a - midpoint) - Math.abs(b - midpoint) || a - b);
 
     for (const pathIndex of candidateIndexes) {
-      // FIX 1: REJECT CORNERS. 
       // A door cannot be placed at a turn. It must be on a straight path.
       if (pathIndex > 0 && pathIndex < path.length - 1) {
         const prev = path[pathIndex - 1];
         const curr = path[pathIndex];
         const next = path[pathIndex + 1];
-        
+
         const incomingDx = curr.x - prev.x;
         const incomingDy = curr.y - prev.y;
         const outgoingDx = next.x - curr.x;
         const outgoingDy = next.y - curr.y;
 
         // If the path changes direction, this is a corner. Skip it.
-        if ((incomingDx !== 0 && outgoingDy !== 0) || (incomingDy !== 0 && outgoingDx !== 0)) {
+        if (
+          (incomingDx !== 0 && outgoingDy !== 0) ||
+          (incomingDy !== 0 && outgoingDx !== 0)
+        ) {
           continue;
         }
       }
 
-      // FIX 2: Use the incoming direction to determine orientation
+      // Use the incoming direction to determine orientation
       const orientation = this.getDoorOrientationAtPathIndex(path, pathIndex);
-      const footprint = this.getDoorFootprint(path[pathIndex], orientation, 2);
+      const footprint = this.getDoorFootprint(path[pathIndex], orientation, this.config.connectivity.corridorWidth);
 
       let valid = true;
-      for (let y = footprint.y; y < footprint.y + footprint.height && valid; y++) {
+      for (
+        let y = footprint.y;
+        y < footprint.y + footprint.height && valid;
+        y++
+      ) {
         for (let x = footprint.x; x < footprint.x + footprint.width; x++) {
           if (
-            x < 0 || y < 0 || x >= this.width || y >= this.height ||
+            x < 0 ||
+            y < 0 ||
+            x >= this.width ||
+            y >= this.height ||
             !corridorCells.has(this.cellKey(x, y)) ||
             !this.isWalkableTile(x, y, walkableCells)
           ) {
@@ -1108,12 +1227,12 @@ export class GameplayPlacementGenerator {
       if (neighbor.x !== path[0].x) return "EAST";
       return "SOUTH";
     }
-    
+
     // Otherwise, we look BACKWARDS to see where we came from.
     // This ensures the door is perpendicular to the corridor we are traveling on.
     const previous = path[index - 1];
     const current = path[index];
-    
+
     if (current.x !== previous.x) return "EAST"; // Moved horizontally, so door is vertical (EAST plane)
     return "SOUTH"; // Moved vertically, so door is horizontal (SOUTH plane)
   }
@@ -1132,14 +1251,14 @@ export class GameplayPlacementGenerator {
     orientation: "NORTH" | "EAST" | "SOUTH" | "WEST",
     walkableCells: ReadonlySet<number>,
   ): boolean {
-    if (footprint.width * footprint.height !== 2) return false;
+    if (footprint.width * footprint.height !== this.config.connectivity.corridorWidth) return false;
 
     if (orientation === "EAST" || orientation === "WEST") {
-      if (footprint.width !== 1 || footprint.height !== 2) return false;
+      if (footprint.width !== 1 || footprint.height !== this.config.connectivity.corridorWidth) return false;
 
       const x = footprint.x;
       const top = footprint.y;
-      const bottom = footprint.y + 1;
+      const bottom = footprint.y + this.config.connectivity.corridorWidth-1;
 
       if (
         !this.isSolidTile(x, top - 1, walkableCells) ||
@@ -1160,10 +1279,10 @@ export class GameplayPlacementGenerator {
       return true;
     }
 
-    if (footprint.width !== 2 || footprint.height !== 1) return false;
+    if (footprint.width !== this.config.connectivity.corridorWidth || footprint.height !== 1) return false;
 
     const left = footprint.x;
-    const right = footprint.x + 1;
+    const right = footprint.x + this.config.connectivity.corridorWidth-1;
     const y = footprint.y;
 
     if (
@@ -1230,7 +1349,7 @@ export class GameplayPlacementGenerator {
       if (i > 0) {
         const previous = path[i - 1];
         const previousDx = a.x - previous.x;
-        const previousDy = a.y - previous.y;
+        // const previousDy = a.y - previous.y;
         if ((previousDx === 0) !== (dx === 0)) {
           for (let y = 0; y < width; y++) {
             for (let x = 0; x < width; x++) add(a.x + x, a.y + y);
@@ -1279,12 +1398,7 @@ export class GameplayPlacementGenerator {
   }
 
   private isMapBoundary(x: number, y: number): boolean {
-    return (
-      x === 0 ||
-      y === 0 ||
-      x === this.width - 1 ||
-      y === this.height - 1
-    );
+    return x === 0 || y === 0 || x === this.width - 1 || y === this.height - 1;
   }
 
   private isWalkableTile(
@@ -1310,12 +1424,7 @@ export class GameplayPlacementGenerator {
     y: number,
     walkableCells: ReadonlySet<number>,
   ): boolean {
-    if (
-      x < 0 ||
-      y < 0 ||
-      x >= this.width ||
-      y >= this.height
-    ) {
+    if (x < 0 || y < 0 || x >= this.width || y >= this.height) {
       return false;
     }
 
@@ -1373,7 +1482,9 @@ export class GameplayPlacementGenerator {
   private createRoomState(room: GeneratedRoom): RoomPlacementState {
     return {
       room,
-      footprint: new Set(room.footprint.map((point) => this.cellKey(point.x, point.y))),
+      footprint: new Set(
+        room.footprint.map((point) => this.cellKey(point.x, point.y)),
+      ),
       reserved: new Set<number>(),
     };
   }

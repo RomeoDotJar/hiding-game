@@ -1,4 +1,4 @@
-export const GAME_VERSION = "v0.10";
+export const GAME_VERSION = "v0.11";
 export const TICK_RATE = 60;
 
 export const PROXY_URL =
@@ -6,4 +6,4 @@ export const PROXY_URL =
 export const LOCAL_URL = "ws://localhost:2567";
 export const USE_LOCALHOST = true;
 
-export const TILEMAP_UPSCALE = 4;
+export const TILEMAP_UPSCALE = 3;

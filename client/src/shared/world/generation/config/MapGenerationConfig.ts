@@ -16,6 +16,7 @@ export interface ConnectivityConfig {
    * Range: 0-1.
    */
   deadEndChance: number;
+  maxDeadEnds: number;
 
   corridorWidth: number;
 

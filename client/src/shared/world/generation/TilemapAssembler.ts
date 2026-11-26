@@ -1,4 +1,9 @@
-import type { TiledLayer, TiledLayerProperty, TiledMap } from "../TiledMap.js";
+import type {
+  TiledLayer,
+  TiledLayerProperty,
+  TiledMap,
+  TiledObject,
+} from "../TiledMap.js";
 import type { MapGenerationConfig } from "./config/MapGenerationConfig.js";
 import type { ConnectivityResult } from "./ConnectivityGenerator.js";
 import type { GeneratedRoom } from "./types/RoomTypes.js";
@@ -192,12 +197,12 @@ export class TilemapAssembler {
     }
 
     // 6. Convert gameplay placements into the Tiled Objs Object Layer.
-    // const objects = gameplay.objects
-    //   .slice()
-    //   .sort((a, b) => a.id - b.id)
-    //   .map((object) => this.toTiledObject(object));
+    const objects = gameplay.objects
+      .slice()
+      .sort((a, b) => a.id - b.id)
+      .map((object) => this.toTiledObject(object));
 
-    // this.assertUniqueTiledObjectIds(objects);
+    this.assertUniqueTiledObjectIds(objects);
 
     const backgroundProperty: TiledLayerProperty[] = [
       { name: "Background", type: "bool", value: true },
@@ -255,17 +260,17 @@ export class TilemapAssembler {
         opacity: 0.26,
         visible: true,
       },
-      // {
-      //   id: 3,
-      //   name: "Objs",
-      //   type: "objectgroup",
-      //   objects,
-      //   x: 0,
-      //   y: 0,
-      //   opacity: 1,
-      //   visible: true,
-      //   draworder: "topdown",
-      // },
+      {
+        id: 3,
+        name: "Objs",
+        type: "objectgroup",
+        objects,
+        x: 0,
+        y: 0,
+        opacity: 1,
+        visible: true,
+        draworder: "topdown",
+      },
     ] as unknown as TiledLayer[];
 
     // const maxObjectId = objects.reduce(
@@ -381,177 +386,177 @@ export class TilemapAssembler {
     }
   }
 
-  // private toTiledObject(object: GeneratedGameplayObject): TiledObject {
-  //   const footprint = object.footprint ?? {
-  //     x: object.position.x,
-  //     y: object.position.y,
-  //     width: 1,
-  //     height: 1,
-  //   };
+  private toTiledObject(object: GeneratedGameplayObject): TiledObject {
+    const footprint = object.footprint ?? {
+      x: object.position.x,
+      y: object.position.y,
+      width: 1,
+      height: 1,
+    };
 
-  //   const isSpawn = object.kind === "SpawnArea";
+    const isSpawn = object.kind === "SpawnArea";
 
-  //   const topLeftX = footprint.x * TILE_WIDTH;
-  //   const topLeftY = footprint.y * TILE_HEIGHT;
+    const topLeftX = footprint.x * TILE_WIDTH;
+    const topLeftY = footprint.y * TILE_HEIGHT;
 
-  //   const properties: Array<{
-  //     name: string;
-  //     type: string;
-  //     value: unknown;
-  //   }> = [
-  //     {
-  //       name: "roomId",
-  //       type: "int",
-  //       value: object.roomId,
-  //     },
-  //     {
-  //       name: "tileX",
-  //       type: "int",
-  //       value: object.position.x,
-  //     },
-  //     {
-  //       name: "tileY",
-  //       type: "int",
-  //       value: object.position.y,
-  //     },
-  //     {
-  //       name: "footprintWidth",
-  //       type: "int",
-  //       value: footprint.width,
-  //     },
-  //     {
-  //       name: "footprintHeight",
-  //       type: "int",
-  //       value: footprint.height,
-  //     },
-  //   ];
+    const properties: Array<{
+      name: string;
+      type: string;
+      value: unknown;
+    }> = [
+      {
+        name: "roomId",
+        type: "int",
+        value: object.roomId,
+      },
+      {
+        name: "tileX",
+        type: "int",
+        value: object.position.x,
+      },
+      {
+        name: "tileY",
+        type: "int",
+        value: object.position.y,
+      },
+      {
+        name: "footprintWidth",
+        type: "int",
+        value: footprint.width,
+      },
+      {
+        name: "footprintHeight",
+        type: "int",
+        value: footprint.height,
+      },
+    ];
 
-  //   let name = `${object.kind}_${object.id}`;
+    let name = `${object.kind}_${object.id}`;
 
-  //   switch (object.kind) {
-  //     case "Door":
-  //       properties.push(
-  //         {
-  //           name: "connectionId",
-  //           type: "int",
-  //           value: object.connectionId,
-  //         },
-  //         {
-  //           name: "orientation",
-  //           type: "string",
-  //           value: object.orientation,
-  //         },
-  //         {
-  //           name: "initialState",
-  //           type: "string",
-  //           value: object.initialState,
-  //         },
-  //         {
-  //           name: "hingeTileX",
-  //           type: "int",
-  //           value: object.hinge.x,
-  //         },
-  //         {
-  //           name: "hingeTileY",
-  //           type: "int",
-  //           value: object.hinge.y,
-  //         },
-  //         {
-  //           name: "hingePixelX",
-  //           type: "float",
-  //           value: (object.hinge.x + 0.5) * TILE_WIDTH,
-  //         },
-  //         {
-  //           name: "hingePixelY",
-  //           type: "float",
-  //           value: (object.hinge.y + 0.5) * TILE_HEIGHT,
-  //         },
-  //       );
-  //       break;
+    switch (object.kind) {
+      case "Door":
+        properties.push(
+          {
+            name: "connectionId",
+            type: "int",
+            value: object.connectionId,
+          },
+          {
+            name: "orientation",
+            type: "string",
+            value: object.orientation,
+          },
+          {
+            name: "initialState",
+            type: "string",
+            value: object.initialState,
+          },
+          {
+            name: "hingeTileX",
+            type: "int",
+            value: object.hinge.x,
+          },
+          {
+            name: "hingeTileY",
+            type: "int",
+            value: object.hinge.y,
+          },
+          {
+            name: "hingePixelX",
+            type: "float",
+            value: (object.hinge.x + 0.5) * TILE_WIDTH,
+          },
+          {
+            name: "hingePixelY",
+            type: "float",
+            value: (object.hinge.y + 0.5) * TILE_HEIGHT,
+          },
+        );
+        break;
 
-  //     case "Chest":
-  //       properties.push(
-  //         {
-  //           name: "item",
-  //           type: "string",
-  //           value: object.item,
-  //         },
-  //         {
-  //           name: "amount",
-  //           type: "int",
-  //           value: object.amount,
-  //         },
-  //         {
-  //           name: "regionRitualId",
-  //           type: "int",
-  //           value: object.regionRitualId,
-  //         },
-  //       );
-  //       break;
+      case "Chest":
+        properties.push(
+          {
+            name: "item",
+            type: "string",
+            value: object.item,
+          },
+          {
+            name: "amount",
+            type: "int",
+            value: object.amount,
+          },
+          {
+            name: "regionRitualId",
+            type: "int",
+            value: object.regionRitualId,
+          },
+        );
+        break;
 
-  //     case "Closet":
-  //       properties.push({
-  //         name: "orientation",
-  //         type: "string",
-  //         value: object.orientation,
-  //       });
-  //       break;
+      case "Closet":
+        properties.push({
+          name: "orientation",
+          type: "string",
+          value: object.orientation,
+        });
+        break;
 
-  //     case "Ritual":
-  //       properties.push(
-  //         {
-  //           name: "ritualId",
-  //           type: "int",
-  //           value: object.ritualId,
-  //         },
-  //         {
-  //           name: "chalkRequired",
-  //           type: "int",
-  //           value: object.chalkRequired,
-  //         },
-  //       );
-  //       break;
+      case "Ritual":
+        properties.push(
+          {
+            name: "ritualId",
+            type: "int",
+            value: object.ritualId,
+          },
+          {
+            name: "chalkRequired",
+            type: "int",
+            value: object.chalkRequired,
+          },
+        );
+        break;
 
-  //     case "SpawnArea":
-  //       properties.push(
-  //         {
-  //           name: "faction",
-  //           type: "string",
-  //           value: object.faction,
-  //         },
-  //         {
-  //           name: "spawnIndex",
-  //           type: "int",
-  //           value: object.spawnIndex,
-  //         },
-  //       );
+      case "SpawnArea":
+        properties.push(
+          {
+            name: "faction",
+            type: "string",
+            value: object.faction,
+          },
+          {
+            name: "spawnIndex",
+            type: "int",
+            value: object.spawnIndex,
+          },
+        );
 
-  //       name =
-  //         object.faction === "PLAYER" && object.spawnIndex === 0
-  //           ? "MainSpawnArea"
-  //           : `${
-  //               object.faction === "PLAYER" ? "Player" : "Monster"
-  //             }SpawnArea_${object.spawnIndex}`;
+        name =
+          object.faction === "PLAYER" && object.spawnIndex === 0
+            ? "MainSpawnArea"
+            : `${
+                object.faction === "PLAYER" ? "Player" : "Monster"
+              }SpawnArea_${object.spawnIndex}`;
 
-  //       break;
-  //   }
+        break;
+    }
 
-  //   const tiledObject = {
-  //     id: object.id,
-  //     name,
-  //     type: object.kind,
-  //     x: isSpawn ? (object.position.x + 0.5) * TILE_WIDTH : topLeftX,
-  //     y: isSpawn ? (object.position.y + 0.5) * TILE_HEIGHT : topLeftY,
-  //     width: isSpawn ? 0 : footprint.width * TILE_WIDTH,
-  //     height: isSpawn ? 0 : footprint.height * TILE_HEIGHT,
-  //     rotation: 0,
-  //     visible: true,
-  //     ...(isSpawn ? { point: true } : {}),
-  //     properties,
-  //   };
+    const tiledObject = {
+      id: object.id,
+      name,
+      type: object.kind,
+      x: isSpawn ? (object.position.x + 0.5) * TILE_WIDTH : topLeftX,
+      y: isSpawn ? (object.position.y + 0.5) * TILE_HEIGHT : topLeftY,
+      width: isSpawn ? 0 : footprint.width * TILE_WIDTH,
+      height: isSpawn ? 0 : footprint.height * TILE_HEIGHT,
+      rotation: 0,
+      visible: true,
+      ...(isSpawn ? { point: true } : {}),
+      properties,
+    };
 
-  //   return tiledObject as TiledObject;
-  // }
+    return tiledObject as TiledObject;
+  }
 
   private decorateRooms(
     rooms: readonly GeneratedRoom[],
@@ -745,20 +750,19 @@ export class TilemapAssembler {
     }
   }
 
-  // UNCOMMENT LATER WHEN THIS BECOMES NEEDED
-  // private assertUniqueTiledObjectIds(objects: readonly TiledObject[]): void {
-  //   const ids = new Set<number>();
+  private assertUniqueTiledObjectIds(objects: readonly TiledObject[]): void {
+    const ids = new Set<number>();
 
-  //   for (const object of objects) {
-  //     if (ids.has(object.id)) {
-  //       throw new Error(
-  //         `TilemapAssembler: duplicate Tiled object ID ${object.id}.`,
-  //       );
-  //     }
+    for (const object of objects) {
+      if (ids.has(object.id)) {
+        throw new Error(
+          `TilemapAssembler: duplicate Tiled object ID ${object.id}.`,
+        );
+      }
 
-  //     ids.add(object.id);
-  //   }
-  // }
+      ids.add(object.id);
+    }
+  }
 
   private index(x: number, y: number): number {
     return y * this.width + x;

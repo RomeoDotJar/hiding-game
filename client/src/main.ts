@@ -6,7 +6,10 @@ import {
 import {
   Application,
   Assets,
+  BlurFilter,
+  ColorMatrixFilter,
   Container,
+  Filter,
   Graphics,
   isMobile,
   Rectangle,
@@ -24,10 +27,24 @@ import { Callbacks } from "@colyseus/sdk";
 import { PROXY_URL } from "./shared/constants.js";
 import { Player, WorldInfo } from "./shared/schema/MyRoomState.js";
 import { WorldMap } from "./shared/world/WorldMap.js";
-import { LoadedMapData, loadMapData } from "./shared/world/utils/load.js";
+import { loadMapData } from "./shared/world/utils/load.js";
 import { GeneratedGameplayObject as GameplayObject } from "./shared/world/generation/types/GameplayTypes.js";
+import { GeneratedRoom } from "./shared/world/generation/types/RoomTypes.js";
+import { TILE_HEIGHT, TILE_WIDTH } from "./shared/world/MapGeometry.js";
+import { VisionRenderer } from "./render/VisionRenderer.js";
+import { SimulationEngine } from "./shared/simulation/SimulationEngine.js";
+import { RenderSystem } from "./render/RenderSystem.js";
+import {
+  TransformComponent,
+  VelocityComponent,
+  SightComponent,
+} from "./shared/simulation/components.js";
+import { CRTFilter, RGBSplitFilter } from "pixi-filters";
+import gsap from "gsap";
 
 const debugUI = new DebugUI();
+
+const clientEngine = new SimulationEngine();
 
 async function updateUptime() {
   if (USE_LOCALHOST && import.meta.env.DEV) return;
@@ -47,8 +64,8 @@ async function updateUptime() {
   }
 }
 
-let lastKnownWorldId = "";
-let worldMap: WorldMap;
+let currentWorldId = "";
+let currentWorldMap: WorldMap;
 
 const cameraContainer: Container = new Container();
 cameraContainer.sortableChildren = true;
@@ -57,38 +74,246 @@ const playerContainer: Container = new Container();
 playerContainer.sortableChildren = true;
 const debugContainer: Container = new Container();
 
-function initGame(app: Application, net: GameNetwork) {
-  const { room, predict, input } = net;
+const fogContainer = new Container();
 
-  const worldId = room.state.players.get(room.sessionId)?.worldId;
-  const worldInfo = room.state.worlds.get(worldId!);
-  loadMapData(worldInfo!).then((loadedMapData: LoadedMapData) => {
-    //console.log(worldId, "loaded");
-    worldMap = loadedMapData.worldMap!;
-    loadFromWorldMap(app, worldMap, loadedMapData.gameplayObjects);
+const fogTexture = await Assets.load<Texture>(
+  "assets/sprites/vfx/bg/eyesbg_noise.png",
+);
+const fogSprite = new Sprite(fogTexture);
+fogSprite.anchor = 0.5;
+const resizeFogSprite = (t: number = 0) => {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+
+  const targetWidth = width + 150 + ((1 + Math.cos(t / 4000)) * width) / 16;
+  const targetHeight = height + 150 + ((1 + Math.sin(t / 3000)) * height) / 16;
+
+  // const scale = Math.max(
+  //     targetWidth / fogTexture.width,
+  //     targetHeight / fogTexture.height
+  // );
+  const scaleX = targetWidth / fogTexture.width;
+  const scaleY = targetHeight / fogTexture.height;
+
+  fogSprite.scale.set(scaleX, scaleY);
+};
+resizeFogSprite();
+
+fogContainer.addChild(fogSprite);
+
+const visionRenderer = new VisionRenderer(fogContainer);
+const visionGraphics = visionRenderer.getGraphics();
+visionGraphics.blendMode = "erase";
+
+let copyContainers: Container[] = [];
+
+// FILTERS INIT
+const crtFilter = new CRTFilter({ curvature: 10 });
+const rbgSplitFilter = new RGBSplitFilter({
+  red: { x: -5, y: 0 },
+  green: { x: 0, y: 5 },
+});
+const desaturateFilter = new ColorMatrixFilter();
+desaturateFilter.desaturate();
+const darkFilter = new ColorMatrixFilter();
+darkFilter.brightness(0.5, true);
+const blurFilter = new BlurFilter({
+  strength: 2,
+  padding: 2,
+  clipToViewport: true,
+});
+
+fogContainer.filters = [blurFilter, rbgSplitFilter, darkFilter];
+
+cameraContainer.filters = [crtFilter];
+
+const copyContainerFilters: Filter[] = [desaturateFilter];
+
+const guiContainer = new Container();
+const loadingGuiContainer = new Container();
+loadingGuiContainer.zIndex = 100000;
+guiContainer.addChild(loadingGuiContainer);
+
+const leftBorder = new Graphics();
+const rightBorder = new Graphics();
+const loadingText = new Text({
+  text: "",
+  style: { fill: "#efefef", fontSize: 24, fontFamily: "Consolas,Arial" },
+});
+const loadingTextTitle = new Text({
+  text: "",
+  style: { fill: "#ffffff", fontSize: 64, fontFamily: "Consolas,Arial" },
+});
+
+loadingGuiContainer.addChild(
+  leftBorder,
+  rightBorder,
+  loadingText,
+  loadingTextTitle,
+);
+loadingGuiContainer.visible = false;
+
+function startLoadingScreen(worldId: string): void {
+  gsap.killTweensOf([leftBorder, rightBorder, loadingText, loadingTextTitle]);
+
+  leftBorder
+    .clear()
+    .rect(0, 0, window.innerWidth / 2, window.innerHeight)
+    .fill(0x000000);
+  rightBorder
+    .clear()
+    .rect(0, 0, window.innerWidth / 2, window.innerHeight)
+    .fill(0x000000);
+
+  leftBorder.x = -window.innerWidth / 2;
+  rightBorder.x = window.innerWidth;
+  loadingText.text = "Traversing to...";
+  loadingText.anchor.set(0.5);
+  loadingText.position.set(window.innerWidth / 2, window.innerHeight / 2 - 64);
+  loadingText.alpha = 0;
+
+  loadingTextTitle.text = worldId.toUpperCase();
+  loadingTextTitle.anchor.set(0.5);
+  loadingTextTitle.position.set(window.innerWidth / 2, window.innerHeight / 2);
+  loadingTextTitle.alpha = 0;
+
+  loadingGuiContainer.visible = true;
+
+  gsap.to(leftBorder, { x: 0, duration: 0.2, ease: "power2.inOut" });
+  gsap.to(rightBorder, {
+    x: window.innerWidth / 2,
+    duration: 0.2,
+    ease: "power2.inOut",
   });
+  gsap.to(loadingText, { alpha: 1, delay: 0.125, duration: 0.5 });
+  gsap.to(loadingTextTitle, { alpha: 1, delay: 0.25, duration: 0.5 });
+}
+
+function stopLoadingScreen(): void {
+  gsap.killTweensOf([leftBorder, rightBorder, loadingText, loadingTextTitle]);
+
+  const width = window.innerWidth;
+
+  gsap
+    .timeline({
+      onComplete: () => {
+        loadingGuiContainer.visible = false;
+
+        // Reset positions for the next transition.
+        leftBorder.x = -width / 2;
+        rightBorder.x = width;
+        loadingText.alpha = 0;
+        loadingTextTitle.alpha = 0;
+      },
+    })
+    .to(
+      leftBorder,
+      {
+        x: -width / 2,
+        duration: 0.45,
+        ease: "power3.in",
+      },
+      0,
+    )
+    .to(
+      rightBorder,
+      {
+        x: width,
+        duration: 0.45,
+        ease: "power3.in",
+      },
+      0,
+    )
+    .to(
+      loadingText,
+      {
+        alpha: 0,
+        duration: 0.2,
+        ease: "power2.in",
+      },
+      0,
+    )
+    .to(
+      loadingTextTitle,
+      {
+        alpha: 0,
+        duration: 0.5,
+        ease: "power2.in",
+      },
+      0,
+    );
+}
+
+async function initGame(app: Application, net: GameNetwork) {
+  const { room, predict, input } = net;
 
   console.log("Successfully connected to the game room", room.roomId);
   debugUI.updateField("Room", room.roomId);
   debugUI.updateField("PlayerID", room.sessionId);
 
-  interface RemotePlayerState {
-    renderedX: number;
-    renderedY: number;
-    predictedVelX: number;
-    predictedVelY: number;
-    lastServerX: number;
-    lastServerY: number;
-    lastUpdateTime: number;
+  const worldId = room.state.players.get(room.sessionId)?.worldId;
+  const worldInfo = room.state.worlds.get(worldId!);
 
-    sprite: Graphics;
-    debugSprite: Graphics;
+  if (!worldInfo) {
+    console.error("No world info found for player!");
+    return;
   }
-  const remotePlayers = new Map<string, RemotePlayerState>();
-  let selfPlayer: Graphics;
-  let selfPlayerDebug: Graphics;
 
+  // 2. NOW the world exists! Setup player callbacks safely.
   const callbacks = Callbacks.get(room);
+
+  const spawnPlayerEntity = (player: Player, sessionId: string) => {
+    const world = clientEngine.getWorld(currentWorldId);
+    if (!world) return;
+
+    const isMe = sessionId === room.sessionId;
+    clientEngine.createPlayerEntity(
+      currentWorldId,
+      sessionId,
+      player.x,
+      player.y,
+    );
+
+    if (isMe) {
+      //entity.addComponent(new SightComponent(120, 361, 0));
+      callbacks.listen(player, "isHidden", (isHidden: boolean) => {
+        console.log(isHidden ? "You are hiding." : "You left the closet.");
+      });
+    }
+  };
+
+  const removePlayerEntity = (player: Player, sessionId: string) => {
+    clientEngine.removePlayer(player.worldId, sessionId);
+  };
+
+  // 4. Listen for FUTURE players
+  callbacks.onAdd("players", spawnPlayerEntity);
+  callbacks.onRemove("players", removePlayerEntity);
+
+  // World Id syncing
+  const syncPlayerWorld = (player: Player, sessionId: string) => {
+    const world = clientEngine.getWorld(currentWorldId);
+    if (!world) return;
+
+    const existingEntity = world.playerEntities.get(sessionId);
+
+    if (player.worldId !== currentWorldId) {
+      if (existingEntity) {
+        removePlayerEntity(player, sessionId);
+      }
+      return;
+    }
+
+    if (!existingEntity) {
+      spawnPlayerEntity(player, sessionId);
+    }
+  };
+  callbacks.onAdd("players", (player: Player, sessionId: string) => {
+    callbacks.listen(player, "worldId", () => {
+      syncPlayerWorld(player, sessionId);
+    });
+    syncPlayerWorld(player, sessionId);
+  });
 
   const updatePlayerList = () => {
     const playerIds = Array.from(room.state.players.keys());
@@ -99,83 +324,41 @@ function initGame(app: Application, net: GameNetwork) {
     debugUI.updateField("Players", displayString);
   };
 
-  // 4. Call it whenever a player joins or leaves
   callbacks.onAdd("players", () => updatePlayerList());
   callbacks.onRemove("players", () => updatePlayerList());
+  updatePlayerList();
 
-  callbacks.onAdd("players", (player: Player, sessionId: string) => {
-    const g = new Graphics();
-    const debug_g = new Graphics();
-    const isMe = sessionId === room.sessionId;
+  room.onMessage("moveToWorld", async ({ worldInfo, worldId }) => {
+    console.log("To", worldId, "from", currentWorldId);
+    if (worldId === currentWorldId) return;
 
-    const color = isMe ? 0x00ff00 : 0xff0000;
+    console.log("Traversing...");
+    startLoadingScreen(worldId);
 
-    const style = new TextStyle({
-      fontFamily: "Consolas,Arial",
-      fontSize: 12,
-      fill: 0xffffff,
-      stroke: { color: 0x000000, width: 2 },
+    await new Promise<void>((resolve) => setTimeout(resolve, 500));
+
+    room.state.players.forEach((player, sessionId) => {
+      removePlayerEntity(player, sessionId);
+    });
+    clientEngine.removeWorld(currentWorldId);
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+    currentWorldId = worldId;
+
+    const newWorldMap = await loadFromWorldInfo(app, worldInfo);
+    if (!newWorldMap) return;
+
+    console.log("Transitioning to world:", worldId);
+    currentWorldMap = newWorldMap;
+
+    room.state.players.forEach((player, sessionId) => {
+      if (player.worldId === currentWorldId || sessionId === room.sessionId) {
+        spawnPlayerEntity(player, sessionId);
+      }
     });
 
-    const label = new Text({ text: sessionId.substring(0, 4), style });
-    label.resolution = 2;
-
-    label.anchor.set(0.5, 1);
-    label.y = -12;
-
-    g.addChild(label);
-
-    g.rect(-10, -10, 20, 20).fill(color);
-    //app.stage.addChild(g);
-
-    debug_g.rect(-7.5, -7.5, 15, 15).fill(0xf1f111, 0.5);
-    debug_g.zIndex -= 100;
-    //app.stage.addChild(debug_g);
-
-    if (isMe) {
-      g.zIndex += 1000;
-      selfPlayer = g;
-      selfPlayerDebug = debug_g;
-
-      lastKnownWorldId = player.worldId;
-
-      // Hey, it's me!
-      room.onMessage("moveToWorld", ({ worldInfo, worldId }) => {
-        //console.log(worldInfo, worldId);
-
-        if (worldId !== lastKnownWorldId) {
-          lastKnownWorldId = worldId;
-
-          loadFromWorldInfo(app, worldInfo).then((world) => {
-            if (world) {
-              worldMap = world;
-            }
-          });
-        }
-      });
-    } else {
-      remotePlayers.set(sessionId, {
-        renderedX: player.x,
-        renderedY: player.y,
-        predictedVelX: 0,
-        predictedVelY: 0,
-        lastServerX: player.x,
-        lastServerY: player.y,
-        lastUpdateTime: performance.now(),
-        sprite: g,
-        debugSprite: debug_g,
-      });
-    }
-    playerContainer.addChild(g);
-    debugContainer.addChild(debug_g);
-  });
-  callbacks.onRemove("players", (_player: Player, sessionId: string) => {
-    const state = remotePlayers.get(sessionId);
-    if (state) {
-      state.sprite.destroy();
-      state.debugSprite.destroy();
-      remotePlayers.delete(sessionId);
-    }
+    await new Promise<void>((resolve) => setTimeout(resolve, 100));
+    stopLoadingScreen();
   });
 
   // Listen to the phase changing
@@ -212,190 +395,192 @@ function initGame(app: Application, net: GameNetwork) {
     false,
   );
 
+  // WAIT for the map to load AND the SimulationEngine world to be created.
+  const loadedMapData = await loadMapData(worldInfo);
+  currentWorldMap = loadedMapData.worldMap!;
+  currentWorldId = worldId ?? "";
+
+  await loadFromWorldMap(
+    app,
+    currentWorldMap,
+    loadedMapData.gameplayObjects,
+    loadedMapData.generatedRooms,
+  );
+
+  // Manually spawn players who are ALREADY in the room
+  room.state.players.forEach((player, sessionId) => {
+    spawnPlayerEntity(player, sessionId);
+  });
+
   app.ticker.add((ticker: Ticker) => {
     const now = performance.now();
     const steps = predict.tick(now);
-
     const deltaTime = Math.min(0.1, ticker.deltaMS / 1000);
 
-    // INPUT HANDLING
-    for (let i = 0; i < steps; i++) {
-      input.data.moveX = getMoveX(selfPlayer.x, cameraContainer.x);
-      input.data.moveY = getMoveY(selfPlayer.y, cameraContainer.y);
-      input.data.interact = isInteractKeyPressed();
-      input.send();
-    }
+    const world = clientEngine.getWorld(currentWorldId);
+    if (!world) return;
 
-    // PLAYER RENDERING
-    const myPing = room.clock.rtt();
-    for (const [sessionId, player] of room.state.players) {
-      const storedRemotePlayer = remotePlayers.get(sessionId);
-      if (storedRemotePlayer && player.worldId === lastKnownWorldId) {
-        //const server_dt = (now - storedRemotePlayer.lastUpdateTime) / 1000;
+    // console.dir(world, { depth: 5 });
 
-        let deltaX = player.vx; //(player.x - storedRemotePlayer.lastServerX) / server_dt;
-        let deltaY = player.vy; //(player.y - storedRemotePlayer.lastServerY) / server_dt;
+    const localPlayerSchema = room.state.players.get(room.sessionId);
+    const localEntity = world.playerEntities.get(room.sessionId);
 
-        if (worldMap) {
-          if (
-            worldMap.checkCircleCollision(
-              storedRemotePlayer.renderedX + deltaX * deltaTime,
-              player.y,
-              2,
-            )
-          ) {
-            deltaX = 0;
-          }
-          if (
-            worldMap.checkCircleCollision(
-              player.x,
-              storedRemotePlayer.renderedY + deltaY * deltaTime,
-              2,
-            )
-          ) {
-            deltaY = 0;
-          }
-        }
+    // ==========================================
+    // 1. APPLY LOCAL INPUT (Prediction)
+    // ==========================================
+    if (localPlayerSchema && localEntity) {
+      for (let i = 0; i < steps; i++) {
+        const moveX = getMoveX(); // -1, 0, 1
+        const moveY = getMoveY();
 
-        // You can use a simple average like (predicted + actual) / 2,
-        // or a frame-rate independent exponential smoothing for better feel.
-        const velSmoothFactor = 1.25;
-        // Frame-rate independent lerp towards the extrapolated target
-        const renderSmoothFactor = 0.25;
+        input.data.moveX = moveX;
+        input.data.moveY = moveY;
+        input.data.interact = isInteractKeyPressed();
+        input.send();
 
-        let predictionDeltaX = deltaX - storedRemotePlayer.predictedVelX;
-        if (predictionDeltaX * storedRemotePlayer.predictedVelX < 0) {
-          predictionDeltaX *= Math.max(1, 0.1 / Math.max(0.01, deltaTime));
-        }
-        storedRemotePlayer.predictedVelX +=
-          predictionDeltaX * velSmoothFactor * deltaTime;
-
-        let predictionDeltaY = deltaY - storedRemotePlayer.predictedVelY;
-        if (predictionDeltaY * storedRemotePlayer.predictedVelY < 0) {
-          predictionDeltaY *= Math.max(1, 0.1 / Math.max(0.01, deltaTime));
-        }
-        storedRemotePlayer.predictedVelY +=
-          predictionDeltaY * velSmoothFactor * deltaTime;
-
-        // If the player is practically stopped, snap velocity to 0 to prevent drifting
-        if (
-          Math.abs(storedRemotePlayer.predictedVelX) < 1 &&
-          Math.abs(deltaX) < 1
-        )
-          storedRemotePlayer.predictedVelX = 0;
-        if (
-          Math.abs(storedRemotePlayer.predictedVelY) < 1 &&
-          Math.abs(deltaY) < 1
-        )
-          storedRemotePlayer.predictedVelY = 0;
-
-        storedRemotePlayer.lastServerX = player.x;
-        storedRemotePlayer.lastServerY = player.y;
-        storedRemotePlayer.lastUpdateTime = now;
-
-        // ==========================================
-        // B. Predict the Future Position
-        // ==========================================
-        // The remote player's total delay includes THEIR upstream ping and YOUR downstream ping
-        const remotePlayerUpstreamLatency = player.ping || 50; // Fallback to 50ms if rtt isn't set
-        let totalPerceivedLatencySeconds =
-          (remotePlayerUpstreamLatency + myPing) / 1000 / 2;
-        totalPerceivedLatencySeconds = Math.min(
-          totalPerceivedLatencySeconds,
-          1,
+        // Feed input directly into the ECS entity
+        clientEngine.setPlayerInput(
+          localPlayerSchema.worldId,
+          room.sessionId,
+          moveX,
+          moveY,
         );
 
-        // Calculate where they should be RIGHT NOW (extrapolation)
-        const targetX =
-          player.x +
-          storedRemotePlayer.predictedVelX * totalPerceivedLatencySeconds;
-        const targetY =
-          player.y +
-          storedRemotePlayer.predictedVelY * totalPerceivedLatencySeconds;
-
-        // ==========================================
-        // C. Smoothly Render
-        // ==========================================
-
-        const renderDeltaX = targetX - storedRemotePlayer.renderedX;
-        const renderDeltaY = targetY - storedRemotePlayer.renderedY;
-        //let renderDeltaDist = Math.sqrt(renderDeltaX*renderDeltaX + renderDeltaY*renderDeltaY);
-
-        const newRenderedX =
-          storedRemotePlayer.renderedX + renderDeltaX * renderSmoothFactor;
-        const newRenderedY =
-          storedRemotePlayer.renderedY + renderDeltaY * renderSmoothFactor;
-
-        storedRemotePlayer.renderedX = newRenderedX;
-        storedRemotePlayer.renderedY = newRenderedY;
-
-        // Apply to PixiJS
-        const g = storedRemotePlayer.sprite;
-        g.x = storedRemotePlayer.renderedX * TILEMAP_UPSCALE;
-        g.y = storedRemotePlayer.renderedY * TILEMAP_UPSCALE;
-        const debug_g = storedRemotePlayer.debugSprite;
-        debug_g.x = player.x * TILEMAP_UPSCALE;
-        debug_g.y = player.y * TILEMAP_UPSCALE;
-      } else if (sessionId === room.sessionId && selfPlayer) {
-        selfPlayer.x = predict.value(player, "x") * TILEMAP_UPSCALE;
-        selfPlayer.y = predict.value(player, "y") * TILEMAP_UPSCALE;
-
-        selfPlayerDebug.x =
-          (player.x + (player.vx * player.ping) / 4000) * TILEMAP_UPSCALE;
-        selfPlayerDebug.y =
-          (player.y + (player.vy * player.ping) / 4000) * TILEMAP_UPSCALE;
-
-        debugUI.updateField(
-          "Position",
-          Math.round(selfPlayer.x / 10) * 10 +
-            " " +
-            Math.round(selfPlayer.y / 10) * 10,
-        );
-        debugUI.updateField(
-          "Velocity",
-          Math.round(predict.value(player, "vx") * 10) / 10 +
-            " " +
-            Math.round(predict.value(player, "vy") * 10) / 10,
-        );
-        debugUI.updateField(
-          "ServerPos",
-          Math.round(selfPlayerDebug.x / 10) * 10 +
-            " " +
-            Math.round(selfPlayerDebug.y / 10) * 10,
-        );
+        // (Your locker interaction logic goes here, unchanged)
       }
     }
 
-    // CAMERA HANDLING
-    cameraContainer.x = window.innerWidth / 2 - selfPlayer.x;
-    cameraContainer.y = window.innerHeight / 2 - selfPlayer.y;
+    // ==========================================
+    // 1.1. UPDATE FILTERS
+    // ==========================================
+    crtFilter.time = app.ticker.lastTime / 2;
+    rbgSplitFilter.red.x = (3 - Math.sin(app.ticker.lastTime / 8000)) / 2;
+    rbgSplitFilter.green.y = -(3 - Math.cos(app.ticker.lastTime / 9000)) / 2;
 
-    // MOUSE RAY
-    if (worldMap === undefined || mouseX === undefined || mouseY === undefined)
-      return;
+    // ==========================================
+    // 1.2. DRAW FOG
+    // ==========================================
+    resizeFogSprite(app.ticker.lastTime);
 
-    const worldMouseX = mouseX - cameraContainer.x;
-    const worldMouseY = mouseY - cameraContainer.y;
+    if (localEntity) {
+      const transform = localEntity.getComponent(TransformComponent);
+      const sight = localEntity.getComponent(SightComponent);
 
-    let ray = worldMap.raycast(
-      selfPlayer.x / TILEMAP_UPSCALE,
-      selfPlayer.y / TILEMAP_UPSCALE,
-      worldMouseX / TILEMAP_UPSCALE,
-      worldMouseY / TILEMAP_UPSCALE,
-    );
+      if (transform && sight) {
+        // 1. Update sight direction based on movement or mouse (for testing)
+        // (In a real game, update this based on where the player is aiming)
 
-    if (ray === null) {
-      ray = { x: worldMouseX, y: worldMouseY };
-    } else {
-      ray.x *= TILEMAP_UPSCALE;
-      ray.y *= TILEMAP_UPSCALE;
+        // 2. Get all entities in the current world
+        let allEntities =
+          clientEngine
+            .getWorld(currentWorldId)
+            ?.scene.querySystem.queryAll(TransformComponent).entities || [];
+        allEntities = allEntities.filter((ent) => ent.id !== localEntity.id);
+
+        // 3. Draw the vision polygon
+        visionRenderer.draw(
+          currentWorldMap,
+          transform.x, // Convert to screen pixels!
+          transform.y,
+          sight,
+          allEntities,
+        );
+
+        // Apply upscaling to the mask as well
+        visionRenderer.getGraphics().scale.set(TILEMAP_UPSCALE);
+      }
     }
 
-    mouseRay
-      .clear()
-      .moveTo(selfPlayer.x, selfPlayer.y)
-      .lineTo(ray.x, ray.y)
-      .stroke({ width: 2, color: 0x00ff00 });
+    // ==========================================
+    // 2. SYNC REMOTE PLAYERS (Colyseus -> ECS)
+    // ==========================================
+    for (const [sessionId, playerSchema] of room.state.players) {
+      if (sessionId === room.sessionId) continue; // Local player is predicted
+
+      const entity = world.playerEntities.get(sessionId);
+      if (!entity) continue;
+
+      const transform = entity.getComponent(TransformComponent);
+      const vel = entity.getComponent(VelocityComponent);
+
+      if (transform && vel) {
+        // We overwrite the ECS position with the server's position
+        // To prevent snapping, we can lerp the ECS position towards the server position
+        transform.x += (playerSchema.x - transform.x) * 0.3;
+        transform.y += (playerSchema.y - transform.y) * 0.3;
+
+        // Sync velocity (useful if you use it for animation or sight direction)
+        vel.vx = playerSchema.vx;
+        vel.vy = playerSchema.vy;
+      }
+    }
+
+    // ==========================================
+    // 3. SYNC LOCAL PLAYER (Reconciliation)
+    // ==========================================
+    if (localPlayerSchema && localEntity) {
+      const transform = localEntity.getComponent(TransformComponent);
+      if (transform) {
+        // The server is the ultimate authority. We snap the ECS to the reconciled prediction position.
+        transform.x = (predict.value(localPlayerSchema, "x") + transform.x) / 2;
+        transform.y = (predict.value(localPlayerSchema, "y") + transform.y) / 2;
+      }
+    }
+
+    // ==========================================
+    // 4. TICK SIMULATION ENGINE
+    // ==========================================
+    // This runs MovementSystem (which applies wall collisions) and RenderSystem (which updates sprites)
+    clientEngine.tick(deltaTime);
+
+    // ==========================================
+    // 5. CAMERA & UI (Unchanged)
+    // ==========================================
+    const localTransform = localEntity?.getComponent(TransformComponent);
+
+    if (localTransform) {
+      cameraContainer.x =
+        window.innerWidth / 2 - localTransform.x * TILEMAP_UPSCALE;
+      cameraContainer.y =
+        window.innerHeight / 2 - localTransform.y * TILEMAP_UPSCALE;
+
+      fogSprite.x = localTransform.x * TILEMAP_UPSCALE - 64;
+      fogSprite.y = localTransform.y * TILEMAP_UPSCALE - 64;
+
+      // MOUSE RAY
+      if (
+        currentWorldMap === undefined ||
+        mouseX === undefined ||
+        mouseY === undefined
+      )
+        return;
+
+      const worldMouseX = mouseX - cameraContainer.x;
+      const worldMouseY = mouseY - cameraContainer.y;
+
+      let ray = currentWorldMap.raycast(
+        localTransform.x,
+        localTransform.y,
+        worldMouseX / TILEMAP_UPSCALE,
+        worldMouseY / TILEMAP_UPSCALE,
+      );
+
+      if (ray === null) {
+        ray = { x: worldMouseX, y: worldMouseY };
+      } else {
+        ray.x *= TILEMAP_UPSCALE;
+        ray.y *= TILEMAP_UPSCALE;
+      }
+
+      mouseRay
+        .clear()
+        .moveTo(
+          localTransform.x * TILEMAP_UPSCALE,
+          localTransform.y * TILEMAP_UPSCALE,
+        )
+        .lineTo(ray.x, ray.y)
+        .stroke({ width: 2, color: 0x00ff00 });
+    }
   });
 }
 
@@ -403,6 +588,7 @@ async function renderMapData(
   worldMap: WorldMap,
   cameraContainer: Container,
   gameplayObjects?: GameplayObject[],
+  generatedRooms: GeneratedRoom[] = [],
 ) {
   const mapData = worldMap.mapData;
 
@@ -413,8 +599,18 @@ async function renderMapData(
 
   const objectContainer = new Container();
 
+  for (const copyContainer of copyContainers) {
+    copyContainer.destroy();
+  }
+  copyContainers = [];
+
+  window.addEventListener("resize", () => {
+    resizeFogSprite();
+  });
+
   if (!gameplayObjects) gameplayObjects = [];
 
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
   for (const obj of gameplayObjects) {
     const pixelX =
       (obj.position.x + (obj.footprint?.width ?? 1) / 2) * 8 * TILEMAP_UPSCALE;
@@ -446,7 +642,7 @@ async function renderMapData(
       fontSize: 12,
       fill: 0xffffff,
       lineHeight: 16,
-      stroke: { color: 0x000000, width: 8 },
+      stroke: { color: 0x000000, width: 4 },
     });
 
     let text = "";
@@ -478,6 +674,69 @@ async function renderMapData(
     // Add to a container (e.g., a new `interactableContainer` or `tileContainer`)
     objectContainer.addChild(g);
   }
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  for (const room of generatedRooms) {
+    const pixelX = room.bounds.x * TILE_WIDTH * TILEMAP_UPSCALE;
+    const pixelY = room.bounds.y * TILE_HEIGHT * TILEMAP_UPSCALE;
+
+    const g = new Graphics();
+    const color = 0xffffff;
+
+    // Draw a small square for the object
+    g.rect(
+      (TILE_WIDTH / 2) * TILEMAP_UPSCALE,
+      (TILE_HEIGHT / 2) * TILEMAP_UPSCALE,
+      (room.bounds.width - 1) * TILE_WIDTH * TILEMAP_UPSCALE,
+      (room.bounds.height - 1) * TILE_HEIGHT * TILEMAP_UPSCALE,
+    ).fill({ color, alpha: 0.0625 });
+    g.x = pixelX;
+    g.y = pixelY;
+
+    const debug_g = new Graphics();
+
+    const style = new TextStyle({
+      fontFamily: "Consolas,Arial",
+      fontSize: 12,
+      fill: 0xffffff,
+      lineHeight: 16,
+      stroke: { color: 0x000000, width: 4 },
+    });
+
+    let text = "";
+    for (const key of Object.keys(room)) {
+      const value: string = room[key as keyof typeof room]?.toString() ?? "";
+      if (!value || value.startsWith("[")) continue;
+      text += key + ": " + value + "\n";
+    }
+    for (const key of Object.keys(room.bounds)) {
+      const value: string =
+        room.bounds[key as keyof typeof room.bounds]?.toString() ?? "";
+      if (!value || value.startsWith("[")) continue;
+      text += key + ": " + value + "\n";
+    }
+
+    const label = new Text({ text: text, style });
+    label.resolution = 2;
+
+    label.anchor.set(0.5, 1);
+    label.y = -12;
+
+    debug_g.addChild(label);
+
+    g.eventMode = "dynamic";
+    g.addEventListener("mouseover", () => {
+      debug_g.visible = debugUI.isVisible();
+    });
+    g.addEventListener("mouseleave", () => {
+      debug_g.visible = false;
+    });
+
+    debug_g.visible = false;
+    g.addChild(debug_g);
+
+    // Add to a container (e.g., a new `interactableContainer` or `tileContainer`)
+    objectContainer.addChildAt(g, 0);
+  }
 
   const renderScale = TILEMAP_UPSCALE;
 
@@ -486,11 +745,12 @@ async function renderMapData(
   const rows = Math.floor(baseTexture.height / mapData.tileheight);
 
   let gid = tilesetInfo.firstgid || 1;
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       const frame = new Rectangle(
-        col * mapData.tilewidth,
-        row * mapData.tileheight,
+        col * (mapData.tilewidth + 1),
+        row * (mapData.tileheight + 1),
         mapData.tilewidth,
         mapData.tileheight,
       );
@@ -499,12 +759,23 @@ async function renderMapData(
     }
   }
 
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
   for (const layer of mapData.layers) {
     if (layer.type !== "tilelayer" || !layer.visible || !layer.data) continue;
     //console.log(layer);
 
     const layerContainer = new Container();
     layerContainer.alpha = layer.opacity ?? 1;
+
+    let copyContainer: Container | undefined = undefined;
+
+    if (layer.name === "wall") {
+      copyContainer = new Container();
+      copyContainer.alpha = layerContainer.alpha;
+      copyContainer.filters = copyContainerFilters;
+
+      copyContainers.push(copyContainer);
+    }
 
     for (let i = 0; i < layer.data.length; i++) {
       const rawGid = layer.data[i];
@@ -515,31 +786,41 @@ async function renderMapData(
       const texture = tileTextures[cleanGid];
 
       if (texture) {
-        const sprite = new Sprite(texture);
-        sprite.anchor = 0.5;
-        sprite.width *= renderScale;
-        sprite.height *= renderScale;
-        const col = i % (layer.width ?? 10);
-        const row = Math.floor(i / (layer.width ?? 10));
+        const getSprite = (): Sprite => {
+          const sprite = new Sprite(texture);
+          sprite.anchor = 0.5;
+          sprite.width *= renderScale;
+          sprite.height *= renderScale;
+          const col = i % (layer.width ?? 10);
+          const row = Math.floor(i / (layer.width ?? 10));
 
-        const flipH = (rawGid & FLIP_H) !== 0 ? 1 : 0;
-        const flipV = (rawGid & FLIP_V) !== 0 ? 1 : 0;
-        const flipD = (rawGid & FLIP_D) !== 0 ? 1 : 0;
+          const flipH = (rawGid & FLIP_H) !== 0 ? 1 : 0;
+          const flipV = (rawGid & FLIP_V) !== 0 ? 1 : 0;
+          const flipD = (rawGid & FLIP_D) !== 0 ? 1 : 0;
 
-        if (flipD) {
-          sprite.rotation = Math.PI / 2;
-          // Because PixiJS rotates first and scales second,
-          // Tiled's horizontal flip becomes vertical scale, and vertical flip becomes inverted horizontal scale
-          sprite.scale.x *= flipV ? -1 : 1;
-          sprite.scale.y *= flipH ? 1 : -1;
-        } else {
-          sprite.scale.x *= flipH ? -1 : 1;
-          sprite.scale.y *= flipV ? -1 : 1;
+          if (flipD) {
+            sprite.rotation = Math.PI / 2;
+            // Because PixiJS rotates first and scales second,
+            // Tiled's horizontal flip becomes vertical scale, and vertical flip becomes inverted horizontal scale
+            sprite.scale.x *= flipV ? -1 : 1;
+            sprite.scale.y *= flipH ? 1 : -1;
+          } else {
+            sprite.scale.x *= flipH ? -1 : 1;
+            sprite.scale.y *= flipV ? -1 : 1;
+          }
+
+          sprite.x = (col + 0.5) * mapData.tilewidth * renderScale;
+          sprite.y = (row + 0.5) * mapData.tileheight * renderScale;
+          return sprite;
+        };
+
+        layerContainer.addChild(getSprite());
+        if (copyContainer) {
+          const sprite = getSprite();
+          sprite.scale.x += 0.1;
+          sprite.scale.y += 0.1;
+          copyContainer.addChild(sprite);
         }
-
-        sprite.x = (col + 0.5) * mapData.tilewidth * renderScale;
-        sprite.y = (row + 0.5) * mapData.tileheight * renderScale;
-        layerContainer.addChild(sprite);
       }
     }
 
@@ -560,34 +841,51 @@ async function renderMapData(
     layerContainer.cacheAsTexture(true);
     cameraContainer.addChild(layerContainer);
   }
+  cameraContainer.addChild(fogContainer);
+  for (const copyContainer of copyContainers) {
+    fogContainer.addChildAt(copyContainer, 1);
+  }
 }
 
 // TILEMAP INIT
 async function loadFromWorldInfo(app: Application, worldInfo: WorldInfo) {
-  const { worldMap, gameplayObjects } = await loadMapData(worldInfo);
+  const { worldMap, gameplayObjects, generatedRooms } =
+    await loadMapData(worldInfo);
   if (!worldMap) return;
 
-  return loadFromWorldMap(app, worldMap, gameplayObjects);
+  return loadFromWorldMap(app, worldMap, gameplayObjects, generatedRooms);
 }
 
 async function loadFromWorldMap(
   app: Application,
-  hubWorld: WorldMap,
+  worldMap: WorldMap,
   gameplayObjects?: GameplayObject[],
+  generatedRooms: GeneratedRoom[] = [],
 ) {
-  // const mapData = hubWorld.mapData;
+  generatedRooms = generatedRooms ?? [];
 
   cameraContainer.removeChildren();
-  await renderMapData(hubWorld, cameraContainer, gameplayObjects);
 
-  // Add the rendered map to your PixiJS stage (at index 0 so it stays behind entities)
-  app.stage.addChild(cameraContainer);
+  app.stage.addChildAt(cameraContainer, 0);
+  if (!app.stage.children.find((v) => v === guiContainer)) {
+    app.stage.addChild(guiContainer);
+  }
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  await renderMapData(
+    worldMap,
+    cameraContainer,
+    gameplayObjects,
+    generatedRooms,
+  );
 
-  // Find the spawn area object
-  // const objectsLayer = mapData.layers.find((l) => l.name === "Objs");
-  // const spawnArea = objectsLayer?.objects?.find((o) => o.type === "SpawnArea");
+  const tryWorld = clientEngine.getWorld(currentWorldId);
+  if (!tryWorld) clientEngine.createWorld(currentWorldId, worldMap);
+  // Add the Client-specific Render System
+  const renderSystem = new RenderSystem();
+  renderSystem.setStage(playerContainer);
+  clientEngine.getWorld(currentWorldId)!.scene.addSystem(renderSystem);
 
-  return hubWorld;
+  return worldMap;
 }
 
 TextureStyle.defaultOptions.scaleMode = "nearest";

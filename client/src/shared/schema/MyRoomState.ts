@@ -1,4 +1,5 @@
 import { MapSchema, Schema, type } from "@colyseus/schema";
+import type { LoadedMapData } from "../world/utils/load";
 
 /**
  * One input frame, consumed by `Room.defineInput()`. Flat primitives only, and
@@ -18,26 +19,45 @@ export class Player extends Schema {
 
   @type("number") ping: number = 100;
 
-  @type("boolean") isInteracting: boolean = false;
-
   @type("string") name: string = "Unknown";
 
   @type("string") worldId: string = "Hub";
+
+  @type("boolean") isInteracting: boolean = false;
+  @type("boolean") isHidden: boolean = false;
 }
 
+// INTERACTABLES
 export class InteractableState extends Schema {
   @type("string") id: string = "";
-  @type("string") type: string = ""; // "Door", "Chest", "Ritual", "Closet"
-
-  // States for different object types
-  @type("boolean") isOpen: boolean = false; // Used for Doors
-  @type("boolean") isLooted: boolean = false; // Used for Chests
-  @type("number") chalkCount: number = 0; // Used for Rituals
+  @type("string") type: "Door" | "Chest" | "Ritual" | "Closet" = "Chest";
 }
 
+export class DoorState extends InteractableState {
+  type = "Door" as const;
+  @type("boolean") isOpen: boolean = false;
+}
+
+export class ChestState extends InteractableState {
+  type = "Chest" as const;
+  @type("boolean") isLooted: boolean = false;
+}
+
+export class RitualState extends InteractableState {
+  type = "Ritual" as const;
+  @type("number") chalkCount: number = 0;
+}
+
+export class ClosetState extends InteractableState {
+  type = "Closet" as const;
+  @type("boolean") isOccupied: boolean = false;
+}
+
+// WORLD
 export class WorldInfo extends Schema {
   @type("string") type: string = "Hub"; // "Hub" | "GameBoard"
   @type("string") path: string = ""; // For static GameBoards
+  mapData: LoadedMapData = {}; // For static GameBoards
   @type("number") seed: number = 0; // For procedural GameBoards
   @type("number") width: number = 30;
   @type("number") height: number = 30;
@@ -46,6 +66,7 @@ export class WorldInfo extends Schema {
     new MapSchema<InteractableState>();
 }
 
+// GENERAL
 export class MyRoomState extends Schema {
   @type({ map: Player }) players = new MapSchema<Player>();
   @type({ map: WorldInfo }) worlds = new MapSchema<WorldInfo>();
@@ -54,6 +75,7 @@ export class MyRoomState extends Schema {
   @type("number") phaseTimer: number = 0;
 }
 
+// GAME
 export enum GamePhase {
   Intermission = "intermission",
   Starting = "starting",

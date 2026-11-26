@@ -3,11 +3,11 @@ import {
   TransformComponent,
   VelocityComponent,
   ColliderComponent,
-  InteractableComponent,
-  PlayerTag,
-} from "./components.js";
-import { WorldMap } from "../world/WorldMap.js";
-import { resolveAxisCollision } from "../input/applyInput.js";
+  PlayerComponent,
+} from "../components.js";
+import { WorldMap } from "../../world/WorldMap.js";
+import { resolveAxisCollision } from "../SimulationEngine.js";
+import { CollisionLayer } from "../collisionLayers.js";
 
 export class MovementSystem extends EntitySystem {
   private worldMap: WorldMap;
@@ -31,6 +31,13 @@ export class MovementSystem extends EntitySystem {
       const velocity = entity.getComponent(VelocityComponent)!;
       const collider = entity.getComponent(ColliderComponent)!;
 
+      const player = entity.getComponent(PlayerComponent);
+      if (player && player.isHidden) {
+        velocity.vx = 0;
+        velocity.vy = 0;
+        continue; // Don't move if hidden
+      }
+
       // Note: The 'dt' is stored in the system or passed via a static context.
       // For simplicity, we'll use a static delta time on the scene, or update it manually.
       // We'll define a custom property for dt that we set before processing.
@@ -40,7 +47,11 @@ export class MovementSystem extends EntitySystem {
       const nextX = transform.x + velocity.vx * dt;
       const nextY = transform.y + velocity.vy * dt;
 
-      if (this.worldMap) {
+      if (
+        collider.canCollide &&
+        collider.layer & CollisionLayer.Wall &&
+        this.worldMap
+      ) {
         // 1. Resolve X-axis movement
         transform.x = resolveAxisCollision(
           this.worldMap,
@@ -64,45 +75,6 @@ export class MovementSystem extends EntitySystem {
         // Fallback if no map is loaded yet
         transform.x = nextX;
         transform.y = nextY;
-      }
-    }
-  }
-}
-
-export class InteractionSystem extends EntitySystem {
-  private interactables: Entity[] = [];
-
-  constructor() {
-    super(Matcher.all(TransformComponent, ColliderComponent, PlayerTag));
-  }
-
-  // We'll pass in the interactables array so the system knows what to check against
-  public setInteractables(entities: Entity[]) {
-    this.interactables = entities;
-  }
-
-  protected process(players: readonly Entity[]): void {
-    //const dt = (this as any).dt || 0;
-    const interactPressed = false;
-
-    if (!interactPressed) return;
-
-    for (const player of players) {
-      const pTrans = player.getComponent(TransformComponent)!;
-
-      for (const interactable of this.interactables) {
-        const iTrans = interactable.getComponent(TransformComponent)!;
-        const iComp = interactable.getComponent(InteractableComponent)!;
-
-        const dx = pTrans.x - iTrans.x;
-        const dy = pTrans.y - iTrans.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist <= 2) {
-          //iComp.radius) {
-          console.log(`Player interacted with ${iComp.type}`); //${iComp.interactType}!`);
-          // Here you would trigger the logic (e.g., broadcast a message to the client)
-        }
       }
     }
   }

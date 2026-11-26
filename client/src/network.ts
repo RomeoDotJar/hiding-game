@@ -12,6 +12,7 @@ import { applyInput } from "./shared/input/applyInput.js";
 import { LOCAL_URL, PROXY_URL, USE_LOCALHOST } from "./shared/constants.js";
 import { WorldMap } from "./shared/world/WorldMap.js";
 import { LoadedMapData, loadMapData } from "./shared/world/utils/load.js";
+import { SimulationEngine } from "./shared/simulation/SimulationEngine.js";
 //import { getMoveX, getMoveY, isInteractKeyPressed } from './input.js';
 
 const useLocalHost = USE_LOCALHOST && import.meta.env.DEV;
@@ -33,6 +34,14 @@ async function getServerUrl(): Promise<string> {
     await new Promise((resolve) => setTimeout(resolve, 5000));
     return getServerUrl();
   }
+}
+
+let worldMap: WorldMap; // Currently running WorldMap
+
+function initWorldMap(loadedWorldMap?: WorldMap) {
+  worldMap = loadedWorldMap || worldMap;
+
+  return worldMap;
 }
 
 export interface GameNetwork {
@@ -61,7 +70,7 @@ function initPredict(room: Room, worldMap?: WorldMap): GameNetwork {
 
   room.onMessage("moveToWorld", ({ worldInfo }) => {
     loadMapData(worldInfo).then((loadedMapData: LoadedMapData) => {
-      worldMap = loadedMapData.worldMap;
+      worldMap = initWorldMap(loadedMapData.worldMap);
     });
   });
 
@@ -117,8 +126,9 @@ export async function connectToGame(worldMap?: WorldMap): Promise<GameNetwork> {
     ) {
       const worldId = room.state.players.get(room.sessionId)?.worldId;
       const worldInfo = room.state.worlds.get(worldId!);
+
       loadMapData(worldInfo!).then((loadedMapData: LoadedMapData) => {
-        worldMap = loadedMapData.worldMap!;
+        worldMap = initWorldMap(loadedMapData.worldMap);
         resolve(initPredict(room, worldMap));
       });
       return;
@@ -129,8 +139,9 @@ export async function connectToGame(worldMap?: WorldMap): Promise<GameNetwork> {
       if (sessionId === room.sessionId) {
         const worldId = room.state.players.get(room.sessionId)?.worldId;
         const worldInfo = room.state.worlds.get(worldId!);
+
         loadMapData(worldInfo!).then((loadedMapData: LoadedMapData) => {
-          worldMap = loadedMapData.worldMap!;
+          worldMap = initWorldMap(loadedMapData.worldMap);
           resolve(initPredict(room, worldMap));
         });
       }

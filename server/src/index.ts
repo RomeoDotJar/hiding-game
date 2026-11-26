@@ -6,5 +6,5 @@ import { USE_LOCALHOST } from "./shared/constants.js";
 listen(app);
 
 // oh my fucking god i hated fixing this latency issue
-// if (USE_LOCALHOST)
-//    app.simulateLatency(115);
+if (USE_LOCALHOST)
+   app.simulateLatency(115);

@@ -1152,7 +1152,11 @@ export class GameplayPlacementGenerator {
     pathIndex: number;
   } | null {
     const path = connection.corridorPath;
-    if (path.length === 0 || connection.width !== 2) return null;
+    if (
+      path.length === 0 ||
+      connection.width !== this.config.connectivity.corridorWidth
+    )
+      return null;
 
     const corridorCells = this.getConnectionCorridorCells(connection);
     const midpoint = (path.length - 1) / 2;
@@ -1161,7 +1165,6 @@ export class GameplayPlacementGenerator {
       .sort((a, b) => Math.abs(a - midpoint) - Math.abs(b - midpoint) || a - b);
 
     for (const pathIndex of candidateIndexes) {
-      // FIX 1: REJECT CORNERS.
       // A door cannot be placed at a turn. It must be on a straight path.
       if (pathIndex > 0 && pathIndex < path.length - 1) {
         const prev = path[pathIndex - 1];
@@ -1182,9 +1185,13 @@ export class GameplayPlacementGenerator {
         }
       }
 
-      // FIX 2: Use the incoming direction to determine orientation
+      // Use the incoming direction to determine orientation
       const orientation = this.getDoorOrientationAtPathIndex(path, pathIndex);
-      const footprint = this.getDoorFootprint(path[pathIndex], orientation, 2);
+      const footprint = this.getDoorFootprint(
+        path[pathIndex],
+        orientation,
+        this.config.connectivity.corridorWidth,
+      );
 
       let valid = true;
       for (
@@ -1252,14 +1259,22 @@ export class GameplayPlacementGenerator {
     orientation: "NORTH" | "EAST" | "SOUTH" | "WEST",
     walkableCells: ReadonlySet<number>,
   ): boolean {
-    if (footprint.width * footprint.height !== 2) return false;
+    if (
+      footprint.width * footprint.height !==
+      this.config.connectivity.corridorWidth
+    )
+      return false;
 
     if (orientation === "EAST" || orientation === "WEST") {
-      if (footprint.width !== 1 || footprint.height !== 2) return false;
+      if (
+        footprint.width !== 1 ||
+        footprint.height !== this.config.connectivity.corridorWidth
+      )
+        return false;
 
       const x = footprint.x;
       const top = footprint.y;
-      const bottom = footprint.y + 1;
+      const bottom = footprint.y + this.config.connectivity.corridorWidth - 1;
 
       if (
         !this.isSolidTile(x, top - 1, walkableCells) ||
@@ -1280,10 +1295,14 @@ export class GameplayPlacementGenerator {
       return true;
     }
 
-    if (footprint.width !== 2 || footprint.height !== 1) return false;
+    if (
+      footprint.width !== this.config.connectivity.corridorWidth ||
+      footprint.height !== 1
+    )
+      return false;
 
     const left = footprint.x;
-    const right = footprint.x + 1;
+    const right = footprint.x + this.config.connectivity.corridorWidth - 1;
     const y = footprint.y;
 
     if (

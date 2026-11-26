@@ -18,12 +18,13 @@ export const DEFAULT_MAP_GENERATION_CONFIG: MapGenerationConfig = {
   roomRoster: DEFAULT_ROOM_ROSTER,
 
   connectivity: {
-    extraConnectionChance: 0.18,
-    deadEndChance: 0.35,
+    extraConnectionChance: 0.125,
+    deadEndChance: 0.5,
+    maxDeadEnds: 2,
 
-    corridorWidth: 2,
+    corridorWidth: 4,
     minRoomSpacing: 2,
-    minDoorwaySeparation: 4,
+    minDoorwaySeparation: 1,
   },
 
   objectives: {
@@ -46,7 +47,7 @@ export const DEFAULT_MAP_GENERATION_CONFIG: MapGenerationConfig = {
   spawns: {
     playerSpawnRoomCapacity: 2,
     monsterSpawnRoomCount: 1,
-    minMonsterPlayerSpawnDistance: 3,
+    minMonsterPlayerSpawnDistance: 1,
   },
 
   walls: {
@@ -147,6 +148,8 @@ export function validateMapGenerationConfig(config: MapGenerationConfig): void {
   );
 
   assertProbability(config.connectivity.deadEndChance, "deadEndChance");
+
+  assertInteger(config.connectivity.maxDeadEnds, "maxDeadEnds", 0);
 
   assertInteger(config.connectivity.corridorWidth, "corridorWidth", 1);
 

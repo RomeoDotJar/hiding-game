@@ -1,9 +1,4 @@
-import type {
-  TiledLayer,
-  TiledLayerProperty,
-  TiledMap,
-  TiledObject,
-} from "../TiledMap.js";
+import type { TiledLayer, TiledLayerProperty, TiledMap, TiledObject } from "../TiledMap.js";
 import type { MapGenerationConfig } from "./config/MapGenerationConfig.js";
 import type { ConnectivityResult } from "./ConnectivityGenerator.js";
 import type { GeneratedRoom } from "./types/RoomTypes.js";
@@ -273,10 +268,10 @@ export class TilemapAssembler {
       },
     ] as unknown as TiledLayer[];
 
-    const maxObjectId = objects.reduce(
-      (maximum, object) => Math.max(maximum, object.id),
-      0,
-    );
+    // const maxObjectId = objects.reduce(
+    //   (maximum, object) => Math.max(maximum, object.id),
+    //   0,
+    // );
 
     // Tiled supports richer root metadata than the project's minimal TiledMap
     // interface. The shape is a standard finite orthogonal TMJ map.
@@ -286,7 +281,7 @@ export class TilemapAssembler {
       height: this.height,
       infinite: false,
       nextlayerid: 6,
-      nextobjectid: maxObjectId + 1,
+      // nextobjectid: maxObjectId + 1,
       orientation: "orthogonal",
       renderorder: "right-down",
       tiledversion: "1.10.2",
@@ -495,6 +490,11 @@ export class TilemapAssembler {
         break;
 
       case "Closet":
+        properties.push({
+          name: "orientation",
+          type: "string",
+          value: object.orientation,
+        });
         break;
 
       case "Ritual":

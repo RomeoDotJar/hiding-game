@@ -1,50 +1,10 @@
+import { Player } from "../schema/MyRoomState";
+import { resolveAxisCollision } from "../simulation/SimulationEngine";
 import { WorldMap } from "../world/WorldMap";
 import type { MoveInput } from "./MoveInput";
 
-/**
- * Helper function to find the exact point before a collision occurs using Binary Search.
- * EXPORTED so the server's MovementSystem can use it too.
- */
-export function resolveAxisCollision(
-  worldMap: WorldMap,
-  startPos: number,
-  endPos: number,
-  otherPos: number,
-  radius: number,
-  isXAxis: boolean,
-): number {
-  const checkCollision = (pos: number) =>
-    isXAxis
-      ? worldMap.checkCircleCollision(pos, otherPos, radius)
-      : worldMap.checkCircleCollision(otherPos, pos, radius);
-
-  if (!checkCollision(endPos)) return endPos;
-  if (checkCollision(startPos)) return endPos; // Escape if somehow stuck
-
-  let valid = startPos;
-  let invalid = endPos;
-
-  for (let i = 0; i < 8; i++) {
-    const mid = (valid + invalid) / 2;
-    if (checkCollision(mid)) {
-      invalid = mid;
-    } else {
-      valid = mid;
-    }
-  }
-  return valid;
-}
-
-// Use a structural interface so it works with Colyseus Schema AND ESEngine Components
-export interface IPhysicsState {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-}
-
 export function applyInput(
-  player: IPhysicsState,
+  player: Player,
   cmd: MoveInput,
   dt: number,
   worldMap?: (() => WorldMap | undefined) | undefined,

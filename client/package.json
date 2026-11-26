@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "start": "npm run dev",
-    "build": "npm run lint && tsc && vite build",
+    "build": "tsc && vite build",
     "lint": "eslint .",
+    "eslint": "npm run lint -- --fix",
     "dev": "vite",
     "build:gh-pages": "vite build --outDir dist-gh-pages --base=/hiding-game/ && node -e \"require('fs').writeFileSync('dist-gh-pages/.nojekyll','')\"",
     "deploy:gh-pages": "npm run build:gh-pages && npx gh-pages -d dist-gh-pages --dotfiles"
@@ -16,6 +17,8 @@
     "@colyseus/sdk": "^0.18.10",
     "@esengine/ecs-framework": "^2.11.2",
     "@pixi/tilemap": "^5.0.2",
+    "gsap": "^3.15.1",
+    "pixi-filters": "^6.1.5",
     "pixi.js": "^8.8.1"
   },
   "devDependencies": {

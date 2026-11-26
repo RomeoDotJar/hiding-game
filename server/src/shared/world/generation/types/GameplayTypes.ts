@@ -1,4 +1,8 @@
-import type { CardinalDirection, TilePoint, TileRect } from "../../MapGeometry.js";
+import type {
+  CardinalDirection,
+  TilePoint,
+  TileRect,
+} from "../../MapGeometry.js";
 import { GeneratedRoom } from "./RoomTypes.js";
 
 /**
@@ -65,9 +69,6 @@ export interface GeneratedChalkChest extends GeneratedObjectBase {
   regionRitualId: number;
 }
 
-/**
- * Allowed closet facing directions. NORTH is intentionally excluded.
- */
 export type ClosetOrientation = "SOUTH" | "WEST" | "EAST";
 
 /**
